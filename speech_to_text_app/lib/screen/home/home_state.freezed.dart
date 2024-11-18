@@ -16,9 +16,10 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$HomeState {
-  bool get loading => throw _privateConstructorUsedError;
+  bool get isLoading => throw _privateConstructorUsedError;
   List<TranscriptionEntry> get transcriptionHistory =>
       throw _privateConstructorUsedError;
+  List<AudioFile> get audioFiles => throw _privateConstructorUsedError;
   String? get audioPath => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
@@ -32,8 +33,9 @@ abstract class $HomeStateCopyWith<$Res> {
       _$HomeStateCopyWithImpl<$Res, HomeState>;
   @useResult
   $Res call(
-      {bool loading,
+      {bool isLoading,
       List<TranscriptionEntry> transcriptionHistory,
+      List<AudioFile> audioFiles,
       String? audioPath});
 }
 
@@ -50,19 +52,24 @@ class _$HomeStateCopyWithImpl<$Res, $Val extends HomeState>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? loading = null,
+    Object? isLoading = null,
     Object? transcriptionHistory = null,
+    Object? audioFiles = null,
     Object? audioPath = freezed,
   }) {
     return _then(_value.copyWith(
-      loading: null == loading
-          ? _value.loading
-          : loading // ignore: cast_nullable_to_non_nullable
+      isLoading: null == isLoading
+          ? _value.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
       transcriptionHistory: null == transcriptionHistory
           ? _value.transcriptionHistory
           : transcriptionHistory // ignore: cast_nullable_to_non_nullable
               as List<TranscriptionEntry>,
+      audioFiles: null == audioFiles
+          ? _value.audioFiles
+          : audioFiles // ignore: cast_nullable_to_non_nullable
+              as List<AudioFile>,
       audioPath: freezed == audioPath
           ? _value.audioPath
           : audioPath // ignore: cast_nullable_to_non_nullable
@@ -80,8 +87,9 @@ abstract class _$$HomeStateImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {bool loading,
+      {bool isLoading,
       List<TranscriptionEntry> transcriptionHistory,
+      List<AudioFile> audioFiles,
       String? audioPath});
 }
 
@@ -96,19 +104,24 @@ class __$$HomeStateImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? loading = null,
+    Object? isLoading = null,
     Object? transcriptionHistory = null,
+    Object? audioFiles = null,
     Object? audioPath = freezed,
   }) {
     return _then(_$HomeStateImpl(
-      loading: null == loading
-          ? _value.loading
-          : loading // ignore: cast_nullable_to_non_nullable
+      isLoading: null == isLoading
+          ? _value.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
       transcriptionHistory: null == transcriptionHistory
           ? _value._transcriptionHistory
           : transcriptionHistory // ignore: cast_nullable_to_non_nullable
               as List<TranscriptionEntry>,
+      audioFiles: null == audioFiles
+          ? _value._audioFiles
+          : audioFiles // ignore: cast_nullable_to_non_nullable
+              as List<AudioFile>,
       audioPath: freezed == audioPath
           ? _value.audioPath
           : audioPath // ignore: cast_nullable_to_non_nullable
@@ -121,15 +134,17 @@ class __$$HomeStateImplCopyWithImpl<$Res>
 
 class _$HomeStateImpl extends _HomeState {
   _$HomeStateImpl(
-      {this.loading = true,
+      {this.isLoading = true,
       final List<TranscriptionEntry> transcriptionHistory = const [],
+      final List<AudioFile> audioFiles = const [],
       this.audioPath})
       : _transcriptionHistory = transcriptionHistory,
+        _audioFiles = audioFiles,
         super._();
 
   @override
   @JsonKey()
-  final bool loading;
+  final bool isLoading;
   final List<TranscriptionEntry> _transcriptionHistory;
   @override
   @JsonKey()
@@ -140,12 +155,21 @@ class _$HomeStateImpl extends _HomeState {
     return EqualUnmodifiableListView(_transcriptionHistory);
   }
 
+  final List<AudioFile> _audioFiles;
+  @override
+  @JsonKey()
+  List<AudioFile> get audioFiles {
+    if (_audioFiles is EqualUnmodifiableListView) return _audioFiles;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_audioFiles);
+  }
+
   @override
   final String? audioPath;
 
   @override
   String toString() {
-    return 'HomeState(loading: $loading, transcriptionHistory: $transcriptionHistory, audioPath: $audioPath)';
+    return 'HomeState(isLoading: $isLoading, transcriptionHistory: $transcriptionHistory, audioFiles: $audioFiles, audioPath: $audioPath)';
   }
 
   @override
@@ -153,16 +177,23 @@ class _$HomeStateImpl extends _HomeState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$HomeStateImpl &&
-            (identical(other.loading, loading) || other.loading == loading) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
             const DeepCollectionEquality()
                 .equals(other._transcriptionHistory, _transcriptionHistory) &&
+            const DeepCollectionEquality()
+                .equals(other._audioFiles, _audioFiles) &&
             (identical(other.audioPath, audioPath) ||
                 other.audioPath == audioPath));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, loading,
-      const DeepCollectionEquality().hash(_transcriptionHistory), audioPath);
+  int get hashCode => Object.hash(
+      runtimeType,
+      isLoading,
+      const DeepCollectionEquality().hash(_transcriptionHistory),
+      const DeepCollectionEquality().hash(_audioFiles),
+      audioPath);
 
   @JsonKey(ignore: true)
   @override
@@ -173,15 +204,18 @@ class _$HomeStateImpl extends _HomeState {
 
 abstract class _HomeState extends HomeState {
   factory _HomeState(
-      {final bool loading,
+      {final bool isLoading,
       final List<TranscriptionEntry> transcriptionHistory,
+      final List<AudioFile> audioFiles,
       final String? audioPath}) = _$HomeStateImpl;
   _HomeState._() : super._();
 
   @override
-  bool get loading;
+  bool get isLoading;
   @override
   List<TranscriptionEntry> get transcriptionHistory;
+  @override
+  List<AudioFile> get audioFiles;
   @override
   String? get audioPath;
   @override

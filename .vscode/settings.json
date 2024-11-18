@@ -1,3 +1,5 @@
 {
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "python.analysis.extraPaths": ["./server/middleware"],
+  "cmake.sourceDirectory": "D:/do_an/speech_to_text_app/windows/flutter"
 }

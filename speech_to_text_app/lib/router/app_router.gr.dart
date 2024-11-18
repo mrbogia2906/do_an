@@ -28,9 +28,14 @@ abstract class _$AppRouter extends RootStackRouter {
       );
     },
     AudioDetailsRoute.name: (routeData) {
+      final args = routeData.argsAs<AudioDetailsRouteArgs>();
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: const AudioDetailsScreen(),
+        child: AudioDetailsScreen(
+          key: args.key,
+          entry: args.entry,
+          audioFile: args.audioFile,
+        ),
       );
     },
     HomeRoute.name: (routeData) {
@@ -126,16 +131,45 @@ class AccountTabRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [AudioDetailsScreen]
-class AudioDetailsRoute extends PageRouteInfo<void> {
-  const AudioDetailsRoute({List<PageRouteInfo>? children})
-      : super(
+class AudioDetailsRoute extends PageRouteInfo<AudioDetailsRouteArgs> {
+  AudioDetailsRoute({
+    Key? key,
+    required TranscriptionEntry entry,
+    required AudioFile audioFile,
+    List<PageRouteInfo>? children,
+  }) : super(
           AudioDetailsRoute.name,
+          args: AudioDetailsRouteArgs(
+            key: key,
+            entry: entry,
+            audioFile: audioFile,
+          ),
           initialChildren: children,
         );
 
   static const String name = 'AudioDetailsRoute';
 
-  static const PageInfo<void> page = PageInfo<void>(name);
+  static const PageInfo<AudioDetailsRouteArgs> page =
+      PageInfo<AudioDetailsRouteArgs>(name);
+}
+
+class AudioDetailsRouteArgs {
+  const AudioDetailsRouteArgs({
+    this.key,
+    required this.entry,
+    required this.audioFile,
+  });
+
+  final Key? key;
+
+  final TranscriptionEntry entry;
+
+  final AudioFile audioFile;
+
+  @override
+  String toString() {
+    return 'AudioDetailsRouteArgs{key: $key, entry: $entry, audioFile: $audioFile}';
+  }
 }
 
 /// generated route for

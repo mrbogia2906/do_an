@@ -5,11 +5,13 @@ class TextConstants {
   static const signIn = 'Sign In';
   static const signUp = 'Sign Up';
   static const logOut = 'Log Out';
+  static const name = 'Name';
   static const email = 'Email';
   static const password = 'Password';
   static const confirmPassword = 'Confirm Password';
   static const warningPassword = 'Password must be at least 6 characters';
   static const warningMatchPassword = 'Password does not match';
+  static const warningName = 'Enter your name';
   static const warningEmail = 'Enter a valid email';
   static const dontHaveAccount = 'Don\'t have an account?';
   static const haveAccount = 'Already have an account?';

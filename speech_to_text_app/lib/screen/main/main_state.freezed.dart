@@ -18,6 +18,7 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$MainState {
   List<TranscriptionEntry> get transcriptionHistory =>
       throw _privateConstructorUsedError;
+  List<AudioFile> get audioFiles => throw _privateConstructorUsedError;
   bool get isLoading => throw _privateConstructorUsedError;
   RecordingState get recordingState => throw _privateConstructorUsedError;
   String? get audioPath => throw _privateConstructorUsedError;
@@ -34,6 +35,7 @@ abstract class $MainStateCopyWith<$Res> {
   @useResult
   $Res call(
       {List<TranscriptionEntry> transcriptionHistory,
+      List<AudioFile> audioFiles,
       bool isLoading,
       RecordingState recordingState,
       String? audioPath});
@@ -53,6 +55,7 @@ class _$MainStateCopyWithImpl<$Res, $Val extends MainState>
   @override
   $Res call({
     Object? transcriptionHistory = null,
+    Object? audioFiles = null,
     Object? isLoading = null,
     Object? recordingState = null,
     Object? audioPath = freezed,
@@ -62,6 +65,10 @@ class _$MainStateCopyWithImpl<$Res, $Val extends MainState>
           ? _value.transcriptionHistory
           : transcriptionHistory // ignore: cast_nullable_to_non_nullable
               as List<TranscriptionEntry>,
+      audioFiles: null == audioFiles
+          ? _value.audioFiles
+          : audioFiles // ignore: cast_nullable_to_non_nullable
+              as List<AudioFile>,
       isLoading: null == isLoading
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
@@ -88,6 +95,7 @@ abstract class _$$MainStateImplCopyWith<$Res>
   @useResult
   $Res call(
       {List<TranscriptionEntry> transcriptionHistory,
+      List<AudioFile> audioFiles,
       bool isLoading,
       RecordingState recordingState,
       String? audioPath});
@@ -105,6 +113,7 @@ class __$$MainStateImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? transcriptionHistory = null,
+    Object? audioFiles = null,
     Object? isLoading = null,
     Object? recordingState = null,
     Object? audioPath = freezed,
@@ -114,6 +123,10 @@ class __$$MainStateImplCopyWithImpl<$Res>
           ? _value._transcriptionHistory
           : transcriptionHistory // ignore: cast_nullable_to_non_nullable
               as List<TranscriptionEntry>,
+      audioFiles: null == audioFiles
+          ? _value._audioFiles
+          : audioFiles // ignore: cast_nullable_to_non_nullable
+              as List<AudioFile>,
       isLoading: null == isLoading
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
@@ -135,10 +148,12 @@ class __$$MainStateImplCopyWithImpl<$Res>
 class _$MainStateImpl implements _MainState {
   const _$MainStateImpl(
       {final List<TranscriptionEntry> transcriptionHistory = const [],
+      final List<AudioFile> audioFiles = const [],
       this.isLoading = false,
       this.recordingState = RecordingState.idle,
       this.audioPath})
-      : _transcriptionHistory = transcriptionHistory;
+      : _transcriptionHistory = transcriptionHistory,
+        _audioFiles = audioFiles;
 
   final List<TranscriptionEntry> _transcriptionHistory;
   @override
@@ -148,6 +163,15 @@ class _$MainStateImpl implements _MainState {
       return _transcriptionHistory;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_transcriptionHistory);
+  }
+
+  final List<AudioFile> _audioFiles;
+  @override
+  @JsonKey()
+  List<AudioFile> get audioFiles {
+    if (_audioFiles is EqualUnmodifiableListView) return _audioFiles;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_audioFiles);
   }
 
   @override
@@ -161,7 +185,7 @@ class _$MainStateImpl implements _MainState {
 
   @override
   String toString() {
-    return 'MainState(transcriptionHistory: $transcriptionHistory, isLoading: $isLoading, recordingState: $recordingState, audioPath: $audioPath)';
+    return 'MainState(transcriptionHistory: $transcriptionHistory, audioFiles: $audioFiles, isLoading: $isLoading, recordingState: $recordingState, audioPath: $audioPath)';
   }
 
   @override
@@ -171,6 +195,8 @@ class _$MainStateImpl implements _MainState {
             other is _$MainStateImpl &&
             const DeepCollectionEquality()
                 .equals(other._transcriptionHistory, _transcriptionHistory) &&
+            const DeepCollectionEquality()
+                .equals(other._audioFiles, _audioFiles) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
             (identical(other.recordingState, recordingState) ||
@@ -183,6 +209,7 @@ class _$MainStateImpl implements _MainState {
   int get hashCode => Object.hash(
       runtimeType,
       const DeepCollectionEquality().hash(_transcriptionHistory),
+      const DeepCollectionEquality().hash(_audioFiles),
       isLoading,
       recordingState,
       audioPath);
@@ -197,12 +224,15 @@ class _$MainStateImpl implements _MainState {
 abstract class _MainState implements MainState {
   const factory _MainState(
       {final List<TranscriptionEntry> transcriptionHistory,
+      final List<AudioFile> audioFiles,
       final bool isLoading,
       final RecordingState recordingState,
       final String? audioPath}) = _$MainStateImpl;
 
   @override
   List<TranscriptionEntry> get transcriptionHistory;
+  @override
+  List<AudioFile> get audioFiles;
   @override
   bool get isLoading;
   @override

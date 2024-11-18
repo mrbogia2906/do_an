@@ -7,19 +7,29 @@ class AudioDownloadManager {
   final YoutubeExplode _ytExplode = YoutubeExplode();
   final Map<String, Future<void>> _downloadTasks = {};
 
+  String sanitizeFileName(String fileName) {
+    return fileName
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '')
+        .replaceAll(' ', '_');
+  }
+
   Future<void> downloadAudioInBackground(String key, String audioTitle) async {
     final cacheDir = await getTemporaryDirectory();
-    final tempSavePath = '${cacheDir.path}/${audioTitle}_temp.mp3';
-    final finalSavePath = '${cacheDir.path}/$audioTitle.mp3';
+    final sanitizedTitle = sanitizeFileName(audioTitle);
+    final tempSavePath = '${cacheDir.path}/${sanitizedTitle}_temp.mp3';
+    final finalSavePath = '${cacheDir.path}/$sanitizedTitle.mp3';
 
     final file = File(finalSavePath);
     if (!await file.exists()) {
       if (_downloadTasks.containsKey(key)) {
+        await _downloadTasks[key];
         return;
       }
 
       _downloadTasks[key] =
           _download(key, audioTitle, tempSavePath, finalSavePath);
+
+      await _downloadTasks[key];
     }
   }
 
@@ -30,8 +40,11 @@ class AudioDownloadManager {
     String finalSavePath,
   ) async {
     try {
+      // Tải video và lấy stream âm thanh
+      print('Starting download for key: $key');
       var video =
           await _ytExplode.videos.get('https://youtube.com/watch?v=$key');
+      print('Video title: ${video.title}');
       var manifest =
           await _ytExplode.videos.streamsClient.getManifest(video.id);
 
@@ -50,8 +63,9 @@ class AudioDownloadManager {
       if (await tempFile.exists()) {
         await tempFile.delete();
       }
+      rethrow;
     } finally {
-      await _downloadTasks.remove(key);
+      _downloadTasks.remove(key);
     }
   }
 

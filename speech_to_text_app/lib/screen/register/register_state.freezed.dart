@@ -16,10 +16,11 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$RegisterState {
-  bool get loading => throw _privateConstructorUsedError;
   bool get authenticated => throw _privateConstructorUsedError;
   bool get passwordVisible => throw _privateConstructorUsedError;
   bool get confirmPasswordVisible => throw _privateConstructorUsedError;
+  String get email => throw _privateConstructorUsedError;
+  String get password => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $RegisterStateCopyWith<RegisterState> get copyWith =>
@@ -33,10 +34,11 @@ abstract class $RegisterStateCopyWith<$Res> {
       _$RegisterStateCopyWithImpl<$Res, RegisterState>;
   @useResult
   $Res call(
-      {bool loading,
-      bool authenticated,
+      {bool authenticated,
       bool passwordVisible,
-      bool confirmPasswordVisible});
+      bool confirmPasswordVisible,
+      String email,
+      String password});
 }
 
 /// @nodoc
@@ -52,16 +54,13 @@ class _$RegisterStateCopyWithImpl<$Res, $Val extends RegisterState>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? loading = null,
     Object? authenticated = null,
     Object? passwordVisible = null,
     Object? confirmPasswordVisible = null,
+    Object? email = null,
+    Object? password = null,
   }) {
     return _then(_value.copyWith(
-      loading: null == loading
-          ? _value.loading
-          : loading // ignore: cast_nullable_to_non_nullable
-              as bool,
       authenticated: null == authenticated
           ? _value.authenticated
           : authenticated // ignore: cast_nullable_to_non_nullable
@@ -74,6 +73,14 @@ class _$RegisterStateCopyWithImpl<$Res, $Val extends RegisterState>
           ? _value.confirmPasswordVisible
           : confirmPasswordVisible // ignore: cast_nullable_to_non_nullable
               as bool,
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      password: null == password
+          ? _value.password
+          : password // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 }
@@ -87,10 +94,11 @@ abstract class _$$RegisterStateImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {bool loading,
-      bool authenticated,
+      {bool authenticated,
       bool passwordVisible,
-      bool confirmPasswordVisible});
+      bool confirmPasswordVisible,
+      String email,
+      String password});
 }
 
 /// @nodoc
@@ -104,16 +112,13 @@ class __$$RegisterStateImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? loading = null,
     Object? authenticated = null,
     Object? passwordVisible = null,
     Object? confirmPasswordVisible = null,
+    Object? email = null,
+    Object? password = null,
   }) {
     return _then(_$RegisterStateImpl(
-      loading: null == loading
-          ? _value.loading
-          : loading // ignore: cast_nullable_to_non_nullable
-              as bool,
       authenticated: null == authenticated
           ? _value.authenticated
           : authenticated // ignore: cast_nullable_to_non_nullable
@@ -126,6 +131,14 @@ class __$$RegisterStateImplCopyWithImpl<$Res>
           ? _value.confirmPasswordVisible
           : confirmPasswordVisible // ignore: cast_nullable_to_non_nullable
               as bool,
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      password: null == password
+          ? _value.password
+          : password // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -134,15 +147,13 @@ class __$$RegisterStateImplCopyWithImpl<$Res>
 
 class _$RegisterStateImpl extends _RegisterState {
   _$RegisterStateImpl(
-      {this.loading = false,
-      this.authenticated = false,
+      {this.authenticated = false,
       this.passwordVisible = true,
-      this.confirmPasswordVisible = true})
+      this.confirmPasswordVisible = true,
+      this.email = '',
+      this.password = ''})
       : super._();
 
-  @override
-  @JsonKey()
-  final bool loading;
   @override
   @JsonKey()
   final bool authenticated;
@@ -152,10 +163,16 @@ class _$RegisterStateImpl extends _RegisterState {
   @override
   @JsonKey()
   final bool confirmPasswordVisible;
+  @override
+  @JsonKey()
+  final String email;
+  @override
+  @JsonKey()
+  final String password;
 
   @override
   String toString() {
-    return 'RegisterState(loading: $loading, authenticated: $authenticated, passwordVisible: $passwordVisible, confirmPasswordVisible: $confirmPasswordVisible)';
+    return 'RegisterState(authenticated: $authenticated, passwordVisible: $passwordVisible, confirmPasswordVisible: $confirmPasswordVisible, email: $email, password: $password)';
   }
 
   @override
@@ -163,18 +180,20 @@ class _$RegisterStateImpl extends _RegisterState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$RegisterStateImpl &&
-            (identical(other.loading, loading) || other.loading == loading) &&
             (identical(other.authenticated, authenticated) ||
                 other.authenticated == authenticated) &&
             (identical(other.passwordVisible, passwordVisible) ||
                 other.passwordVisible == passwordVisible) &&
             (identical(other.confirmPasswordVisible, confirmPasswordVisible) ||
-                other.confirmPasswordVisible == confirmPasswordVisible));
+                other.confirmPasswordVisible == confirmPasswordVisible) &&
+            (identical(other.email, email) || other.email == email) &&
+            (identical(other.password, password) ||
+                other.password == password));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, loading, authenticated,
-      passwordVisible, confirmPasswordVisible);
+  int get hashCode => Object.hash(runtimeType, authenticated, passwordVisible,
+      confirmPasswordVisible, email, password);
 
   @JsonKey(ignore: true)
   @override
@@ -185,20 +204,23 @@ class _$RegisterStateImpl extends _RegisterState {
 
 abstract class _RegisterState extends RegisterState {
   factory _RegisterState(
-      {final bool loading,
-      final bool authenticated,
+      {final bool authenticated,
       final bool passwordVisible,
-      final bool confirmPasswordVisible}) = _$RegisterStateImpl;
+      final bool confirmPasswordVisible,
+      final String email,
+      final String password}) = _$RegisterStateImpl;
   _RegisterState._() : super._();
 
-  @override
-  bool get loading;
   @override
   bool get authenticated;
   @override
   bool get passwordVisible;
   @override
   bool get confirmPasswordVisible;
+  @override
+  String get email;
+  @override
+  String get password;
   @override
   @JsonKey(ignore: true)
   _$$RegisterStateImplCopyWith<_$RegisterStateImpl> get copyWith =>

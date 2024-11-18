@@ -1,19 +1,21 @@
+// lib/screen/home/home_screen.dart
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:speech_to_text_app/components/base_view/base_view.dart';
 import 'package:speech_to_text_app/components/loading/loading_view_model.dart';
-import 'package:speech_to_text_app/screen/account/account_screen.dart';
-import 'package:speech_to_text_app/screen/account/account_state.dart';
 import 'package:speech_to_text_app/screen/home/home_state.dart';
 import 'package:speech_to_text_app/screen/home/home_view_model.dart';
-import 'package:speech_to_text_app/screen/main/main_screen.dart';
-import 'package:speech_to_text_app/screen/main/main_state.dart';
-import 'package:speech_to_text_app/screen/main/main_view_model.dart';
 
+import '../../data/models/api/responses/audio_file/audio_file.dart';
+import '../../data/providers/audio_provider.dart';
+import '../../data/providers/transcription_provider.dart';
 import '../../router/app_router.dart';
+import '../main/main_state.dart';
 
-final _provider = StateNotifierProvider<HomeViewModel, HomeState>(
+final homeProvider = StateNotifierProvider<HomeViewModel, HomeState>(
   (ref) => HomeViewModel(
     ref: ref,
   ),
@@ -41,59 +43,84 @@ class _HomeViewState extends BaseViewState<HomeScreen, HomeViewModel> {
 
   @override
   Widget buildBody(BuildContext context) {
+    final transcriptionHistory = ref.watch(transcriptionProvider);
+    final audioFiles = ref.watch(audioFilesProvider);
     print(
-        'transcriptionHistory: ${state.transcriptionHistory}, audioPath: ${state.audioPath}, mainAudio: ${mainState.audioPath}, mainIsLoading: ${mainState.isLoading}, accountLoading: ${accountState.loading}, transcriptionHistory: ${mainState.transcriptionHistory.length}');
+        'transcriptionHistoryHome: ${transcriptionHistory.length}, audioFiles: ${audioFiles.length}');
+
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const UpgradeWidget(),
-            const SizedBox(height: 24.0),
-            const SearchBarWidget(),
-            const SizedBox(height: 24.0),
-            ElevatedButton(
-              onPressed: () =>
-                  viewModel.sendToTranscription('gemini-transcribe').then((_) {
-                viewModel.updateState();
-              }),
-              child: Text('Send for Gemini AI Transcription'),
-            ),
-            Expanded(
-              child: mainState.transcriptionHistory.isNotEmpty
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const UpgradeWidget(),
+              const SizedBox(height: 24.0),
+              const SearchBarWidget(),
+              const SizedBox(height: 24.0),
+              transcriptionHistory.isNotEmpty
                   ? ListView.builder(
-                      itemCount: mainState.transcriptionHistory.length,
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      itemCount: transcriptionHistory.length,
                       itemBuilder: (context, index) {
-                        final entry = mainState.transcriptionHistory[index];
-                        return RecordingTile(
-                          title: entry.title,
-                          subtitle: entry.content,
-                          trailingText:
-                              entry.timestamp.toString().split(' ')[0],
+                        final entry = transcriptionHistory[index];
+                        final audioFile = audioFiles.firstWhere(
+                          (audio) => audio.id == entry.audioFileId,
+                          orElse: () => AudioFile(
+                            id: 'unknown',
+                            title: 'Unknown Title',
+                            fileUrl: '',
+                            uploadedAt: DateTime.now(),
+                            transcriptionId: null,
+                            isProcessing: false,
+                          ),
                         );
-                      })
+
+                        print(
+                            'Displaying entry: ${entry.id} - ${entry.content} - isProcessing: ${entry.isProcessing}');
+
+                        return GestureDetector(
+                          onTap: () {
+                            if (!entry.isProcessing && !entry.isError) {
+                              context.router.push(AudioDetailsRoute(
+                                entry: entry,
+                                audioFile: audioFile, // Truyền thêm AudioFile
+                              ));
+                            }
+                          },
+                          child: RecordingTile(
+                            entry: entry,
+                            audioFile: audioFile, // Truyền thêm AudioFile
+                          ),
+                        );
+                      },
+                    )
                   : const Center(
                       child: Text('No recordings yet'),
                     ),
-            ),
-          ],
+              // Bạn có thể thêm thêm các widget khác ở đây nếu cần
+            ],
+          ),
         ),
       ),
     );
   }
 
   @override
-  HomeViewModel get viewModel => ref.read(_provider.notifier);
+  bool get tapOutsideToDismissKeyBoard => true;
+
+  @override
+  bool get ignoreSafeAreaBottom => false;
+
+  @override
+  HomeViewModel get viewModel => ref.read(homeProvider.notifier);
 
   @override
   String get screenName => HomeRoute.name;
 
-  HomeState get state => ref.watch(_provider);
-
-  MainState get mainState => ref.watch(mainProvider);
-
-  AccountState get accountState => ref.watch(accountProvider);
+  HomeState get state => ref.watch(homeProvider);
 
   LoadingStateViewModel get loading => ref.read(loadingStateProvider.notifier);
 
@@ -179,47 +206,93 @@ class SearchBarWidget extends StatelessWidget {
   }
 }
 
-class RecordingTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String trailingText;
+class RecordingTile extends ConsumerWidget {
+  final TranscriptionEntry entry;
+  final AudioFile audioFile;
 
   const RecordingTile({
     super.key,
-    required this.title,
-    required this.subtitle,
-    required this.trailingText,
+    required this.entry,
+    required this.audioFile,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4.0,
-            offset: Offset(0, 2),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Slidable(
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.25,
+        children: [
+          SlidableAction(
+            onPressed: (context) {
+              ref
+                  .read(transcriptionProvider.notifier)
+                  .removeTranscription(entry.id);
+            },
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            icon: Icons.delete,
+            label: 'Delete',
+            borderRadius: BorderRadius.circular(12.0),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style:
-                  const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4.0),
-          Text(subtitle,
-              style: const TextStyle(fontSize: 14.0, color: Colors.black87)),
-          const SizedBox(height: 4.0),
-          Text(trailingText,
-              style: const TextStyle(fontSize: 12.0, color: Colors.black54)),
-        ],
+      child: Container(
+        padding: const EdgeInsets.all(16.0),
+        margin: const EdgeInsets.symmetric(vertical: 8.0),
+        decoration: BoxDecoration(
+          color: entry.isError
+              ? Colors.red.shade50
+              : (entry.isProcessing ? Colors.grey.shade200 : Colors.white),
+          borderRadius: BorderRadius.circular(12.0),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4.0,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              audioFile.title, // Lấy title từ AudioFile
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                color: entry.isError
+                    ? Colors.red
+                    : (entry.isProcessing ? Colors.grey : Colors.black),
+              ),
+            ),
+            if (entry.isProcessing) ...[
+              const SizedBox(height: 8.0),
+              const LinearProgressIndicator(),
+            ] else if (entry.isError) ...[
+              const SizedBox(height: 4.0),
+              Text(
+                entry.content ?? 'An error occurred.',
+                style: const TextStyle(fontSize: 14.0, color: Colors.red),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ] else ...[
+              const SizedBox(height: 4.0),
+              Text(
+                entry.content ?? 'No transcription available.',
+                style: const TextStyle(fontSize: 14.0, color: Colors.black87),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            const SizedBox(height: 4.0),
+            Text(
+              entry.createdAt.toLocal().toString().split(' ')[0],
+              style: const TextStyle(fontSize: 12.0, color: Colors.black54),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,127 +1,102 @@
+// lib/screen/home/home_view_model.dart
 import 'dart:convert';
 
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:speech_to_text_app/components/base_view/base_view_model.dart';
+import 'package:speech_to_text_app/data/models/api/responses/audio_file/audio_file.dart';
+import 'package:speech_to_text_app/data/providers/transcription_provider.dart';
+import 'package:speech_to_text_app/data/services/audio_service/audio_service.dart';
 import 'package:speech_to_text_app/screen/home/home_state.dart';
-import 'package:http/http.dart' as http;
+import 'package:speech_to_text_app/components/base_view/base_view_model.dart';
 
-import '../main/main_screen.dart';
+import '../../data/providers/audio_provider.dart';
+import '../../data/repositories/auth/auth_local_repository.dart';
 import '../main/main_state.dart';
-import '../main/main_view_model.dart';
 
 class HomeViewModel extends BaseViewModel<HomeState> {
-  HomeViewModel({required this.ref}) : super(HomeState()) {
-    // Khởi tạo dữ liệu ban đầu
-    initData();
+  HomeViewModel({required this.ref}) : super(HomeState());
 
-    // Lắng nghe sự thay đổi của mainProvider
-    ref.listen<MainState>(mainProvider, (previous, next) {
-      state = state.copyWith(
-        audioPath: next.audioPath,
-      );
-    });
-  }
-  Ref ref;
+  final Ref ref;
+  final AudioService _audioService = AudioService();
 
   Future<void> initData() async {
-    final mainState = ref.watch(mainProvider);
-    state = state.copyWith(
-      audioPath: mainState.audioPath,
-    );
-  }
+    state = state.copyWith(isLoading: true, audioFiles: []);
+    final token = await ref.read(authLocalRepositoryProvider).getToken();
+    if (token == null) {
+      // Handle token missing
+      state = state.copyWith(isLoading: false);
+      return;
+    }
 
-  Future<void> sendToTranscription(String endpoint) async {
-    if (state.audioPath == null) return;
+    try {
+      final audioFiles = await _audioService.getAudioFiles(token);
+      ref.read(audioFilesProvider.notifier).setAudioFiles(audioFiles);
+      state = state.copyWith(audioFiles: audioFiles, isLoading: false);
 
-    state = state.copyWith(loading: true);
-
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('http://10.10.180.39:3000/$endpoint'),
-    );
-    request.files
-        .add(await http.MultipartFile.fromPath('audio', state.audioPath!));
-
-    var response = await request.send();
-    if (response.statusCode == 200) {
-      var responseBody = await http.Response.fromStream(response);
-      var data = json.decode(responseBody.body);
-
-      // Save transcription result
-      String transcriptionText = data['transcription'];
-      // _saveTranscription("New Transcription", transcriptionText);
-
-      // Update the state to include the new transcription
-      state = state.copyWith(
-        transcriptionHistory: [
-          TranscriptionEntry(
-            title: "New Transcription",
-            content: transcriptionText,
-            timestamp: DateTime.now(),
-          ),
-          ...state.transcriptionHistory,
-        ],
-        loading: false,
-      );
-    } else {
-      state = state.copyWith(loading: false);
-      print('Error: Unable to transcribe audio');
+      // Fetch transcription content for each audio file
+      for (var audio in audioFiles) {
+        if (!audio.isProcessing && audio.transcriptionId != null) {
+          try {
+            final transcription = await _audioService.getTranscription(
+                audio.transcriptionId!, token);
+            // Add transcription content to transcriptionProvider
+            ref.read(transcriptionProvider.notifier).addTranscription(
+                  TranscriptionEntry(
+                    id: transcription.id,
+                    audioFileId: transcription.audioFileId,
+                    content: transcription.content,
+                    createdAt: transcription.createdAt,
+                    isProcessing: transcription.isProcessing,
+                    isError: transcription.isError,
+                  ),
+                );
+          } catch (e) {
+            // Handle error fetching transcription
+            ref.read(transcriptionProvider.notifier).addTranscription(
+                  TranscriptionEntry(
+                    id: audio.transcriptionId!,
+                    audioFileId: audio.id,
+                    content: 'Failed to fetch transcription.',
+                    createdAt: audio.uploadedAt,
+                    isProcessing: false,
+                    isError: true,
+                  ),
+                );
+          }
+        } else if (audio.isProcessing) {
+          // Add entry with processing state
+          ref.read(transcriptionProvider.notifier).addTranscription(
+                TranscriptionEntry(
+                  id: audio.transcriptionId ?? '',
+                  audioFileId: audio.id,
+                  content: 'Transcription in progress...',
+                  createdAt: audio.uploadedAt,
+                  isProcessing: true,
+                  isError: false,
+                ),
+              );
+        } else {
+          // Add entry with no transcription
+          ref.read(transcriptionProvider.notifier).addTranscription(
+                TranscriptionEntry(
+                  id: audio.transcriptionId ?? '',
+                  audioFileId: audio.id,
+                  content: 'No transcription available.',
+                  createdAt: audio.uploadedAt,
+                  isProcessing: false,
+                  isError: false,
+                ),
+              );
+        }
+      }
+    } catch (e) {
+      print('Error fetching audio files: $e');
+      state = state.copyWith(isLoading: false);
     }
   }
 
-  Future<void> _saveTranscription(String title, String content) async {
-    final entry = TranscriptionEntry(
-      title: title,
-      content: content,
-      timestamp: DateTime.now(),
-    );
-
-    // Update the local state with the new transcription
-    state = state.copyWith(
-      transcriptionHistory: [
-        entry,
-        ...state.transcriptionHistory,
-      ],
-    );
+  void removeTranscriptionEntry(TranscriptionEntry entry) {
+    ref.read(transcriptionProvider.notifier).removeTranscription(entry.id);
   }
 
-  Future<void> pickAudioFile3(BuildContext context) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.audio,
-    );
-
-    if (result != null) {
-      state = state.copyWith(audioPath: result.files.single.path);
-
-      Navigator.pop(context);
-
-      // await sendToTranscription('gemini-transcribe');
-
-      print('Audio file selected: ${state.audioPath}');
-    } else {
-      print('No file selected');
-    }
-  }
-
-  void _initialize() {
-    // Watch MainViewModel's transcription history
-    final mainViewModel = ref.watch(mainProvider.notifier);
-    final mainState = ref.watch(mainProvider);
-    state = state.copyWith(
-      transcriptionHistory: mainState.transcriptionHistory,
-    );
-
-    // Listen to changes in MainViewModel and update HomeState
-    ref.listen(mainProvider, (previous, next) {
-      state = state.copyWith(
-        transcriptionHistory: next.transcriptionHistory,
-      );
-    });
-  }
-
-  void updateState() {
-    state = state.copyWith(loading: false);
-  }
+  // Các phương thức khác nếu cần
 }

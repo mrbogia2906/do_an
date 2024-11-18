@@ -16,8 +16,8 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$LoginState {
-  bool get authenticated => throw _privateConstructorUsedError;
-  bool get loading => throw _privateConstructorUsedError;
+  String get email => throw _privateConstructorUsedError;
+  String get password => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $LoginStateCopyWith<LoginState> get copyWith =>
@@ -30,7 +30,7 @@ abstract class $LoginStateCopyWith<$Res> {
           LoginState value, $Res Function(LoginState) then) =
       _$LoginStateCopyWithImpl<$Res, LoginState>;
   @useResult
-  $Res call({bool authenticated, bool loading});
+  $Res call({String email, String password});
 }
 
 /// @nodoc
@@ -46,18 +46,18 @@ class _$LoginStateCopyWithImpl<$Res, $Val extends LoginState>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? authenticated = null,
-    Object? loading = null,
+    Object? email = null,
+    Object? password = null,
   }) {
     return _then(_value.copyWith(
-      authenticated: null == authenticated
-          ? _value.authenticated
-          : authenticated // ignore: cast_nullable_to_non_nullable
-              as bool,
-      loading: null == loading
-          ? _value.loading
-          : loading // ignore: cast_nullable_to_non_nullable
-              as bool,
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      password: null == password
+          ? _value.password
+          : password // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 }
@@ -70,7 +70,7 @@ abstract class _$$LoginStateImplCopyWith<$Res>
       __$$LoginStateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({bool authenticated, bool loading});
+  $Res call({String email, String password});
 }
 
 /// @nodoc
@@ -84,18 +84,18 @@ class __$$LoginStateImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? authenticated = null,
-    Object? loading = null,
+    Object? email = null,
+    Object? password = null,
   }) {
     return _then(_$LoginStateImpl(
-      authenticated: null == authenticated
-          ? _value.authenticated
-          : authenticated // ignore: cast_nullable_to_non_nullable
-              as bool,
-      loading: null == loading
-          ? _value.loading
-          : loading // ignore: cast_nullable_to_non_nullable
-              as bool,
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      password: null == password
+          ? _value.password
+          : password // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -103,19 +103,18 @@ class __$$LoginStateImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$LoginStateImpl extends _LoginState {
-  _$LoginStateImpl({this.authenticated = false, this.loading = false})
-      : super._();
+  _$LoginStateImpl({this.email = '', this.password = ''}) : super._();
 
   @override
   @JsonKey()
-  final bool authenticated;
+  final String email;
   @override
   @JsonKey()
-  final bool loading;
+  final String password;
 
   @override
   String toString() {
-    return 'LoginState(authenticated: $authenticated, loading: $loading)';
+    return 'LoginState(email: $email, password: $password)';
   }
 
   @override
@@ -123,13 +122,13 @@ class _$LoginStateImpl extends _LoginState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$LoginStateImpl &&
-            (identical(other.authenticated, authenticated) ||
-                other.authenticated == authenticated) &&
-            (identical(other.loading, loading) || other.loading == loading));
+            (identical(other.email, email) || other.email == email) &&
+            (identical(other.password, password) ||
+                other.password == password));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, authenticated, loading);
+  int get hashCode => Object.hash(runtimeType, email, password);
 
   @JsonKey(ignore: true)
   @override
@@ -139,14 +138,14 @@ class _$LoginStateImpl extends _LoginState {
 }
 
 abstract class _LoginState extends LoginState {
-  factory _LoginState({final bool authenticated, final bool loading}) =
+  factory _LoginState({final String email, final String password}) =
       _$LoginStateImpl;
   _LoginState._() : super._();
 
   @override
-  bool get authenticated;
+  String get email;
   @override
-  bool get loading;
+  String get password;
   @override
   @JsonKey(ignore: true)
   _$$LoginStateImplCopyWith<_$LoginStateImpl> get copyWith =>

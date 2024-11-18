@@ -256,17 +256,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text_app/data/providers/app_router_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'data/view_model/auth_viewmodel.dart';
+
 Future<void> main() async {
-  // await Supabase.initialize(
-  //   url: 'https://ruaqbzgrixdvixfrgajr.supabase.co',
-  //   anonKey:
-  //       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpX..'VCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1YXFiemdyaXhkdml4ZnJnYWpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjczMjU1MTgsImV4cCI6MjA0MjkwMTUxOH0.h7n3_TN0p4pI6K0WNSESDWlikJyBBBbyRBZrjlhJaTA',
-  // );
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Khởi tạo ProviderContainer
+  final container = ProviderContainer();
+  // Khởi tạo SharedPreferences và lấy dữ liệu người dùng
+  await container.read(authViewModelProvider.notifier).initSharedPreferences();
+  await container.read(authViewModelProvider.notifier).getData();
+
   runApp(
-    const ProviderScope(
-      child: MaterialApp(
-        home: MyApp(),
-      ),
+    UncontrolledProviderScope(
+      container: container,
+      child: const MyApp(),
     ),
   );
 }

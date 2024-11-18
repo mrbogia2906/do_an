@@ -1,3 +1,4 @@
+// lib/screen/main/main_screen.dart
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +32,8 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
 
   @override
   Widget buildBody(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final keyboardHeight = mediaQuery.viewInsets.bottom;
     print('audio main: ${state.audioPath}, mainIsloading1: ${state.isLoading}');
     return AutoTabsScaffold(
       routes: const [
@@ -39,7 +42,7 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
         UpgradeTabRoute(),
         AccountTabRoute(),
       ],
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       floatingActionButton: FloatingActionButton(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(32),
@@ -49,6 +52,7 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
               'audio main: ${state.audioPath}, mainIsloading2: ${state.isLoading}');
 
           showModalBottomSheet(
+            isScrollControlled: true,
             context: context,
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -69,162 +73,159 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
   }
 
   Widget _buildWidget(BuildContext context, WidgetRef ref) {
-    final recordingState = ref.watch(mainProvider);
+    return Consumer(
+      builder: (context, ref, child) {
+        final recordingState = ref.watch(mainProvider);
+        final viewModel = ref.read(mainProvider.notifier);
 
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Choose recording',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              // Tiêu đề và nút đóng
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Choose recording',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
+              const SizedBox(height: 20),
+              // Hiển thị các trạng thái ghi âm
+              if (recordingState.recordingState == RecordingState.idle) ...[
+                ElevatedButton.icon(
+                  onPressed: () {
+                    viewModel.startRecording();
+                  },
+                  icon: const Icon(Icons.mic, color: Colors.white),
+                  label: const Text('Record'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _OptionButton(
+                      icon: Icons.upload,
+                      label: 'Upload file',
+                      onTap: () async {
+                        Navigator.pop(context);
+                        await showModalBottomSheet(
+                          context: context,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          builder: (BuildContext context) {
+                            return _buildUploadFileSheet(context, ref);
+                          },
+                        );
+                      },
+                    ),
+                    _OptionButton(
+                      icon: Icons.link,
+                      label: 'YouTube Link',
+                      onTap: () {
+                        Navigator.pop(context);
+                        showModalBottomSheet(
+                          context: context,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          builder: (BuildContext context) {
+                            return YouTubeLinkSheet(viewModel: viewModel);
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ] else if (recordingState.recordingState ==
+                  RecordingState.recording) ...[
+                const Text('Recording...', style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 10),
+                Container(
+                  height: 100,
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: Text('Waveform here'),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        viewModel.pauseRecording();
+                      },
+                      child: const Text('Pause'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        viewModel.stopRecording(context);
+                        // Navigator.pop(context);
+                      },
+                      child: const Text('Done'),
+                    ),
+                  ],
+                ),
+              ] else if (recordingState.recordingState ==
+                  RecordingState.paused) ...[
+                const Text('Paused', style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 10),
+                Container(
+                  height: 100,
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: Text('Waveform here'),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        viewModel.resumeRecording();
+                      },
+                      child: const Text('Continue'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        viewModel.stopRecording(context);
+                        // Navigator.pop(context);
+                      },
+                      child: const Text('Done'),
+                    ),
+                  ],
+                ),
+              ],
+              if (recordingState.audioPath != null) ...[
+                const SizedBox(height: 20),
+                Text('File ghi âm: ${recordingState.audioPath}'),
+                // Bạn có thể thêm nút để phát lại hoặc tải lên file âm thanh ở đây
+              ],
             ],
           ),
-          const SizedBox(height: 20),
-          if (state.recordingState == RecordingState.idle) ...[
-            ElevatedButton.icon(
-              onPressed: () {
-                viewModel.startRecording();
-              },
-              icon: const Icon(Icons.mic, color: Colors.white),
-              label: const Text('Record'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _OptionButton(
-                  icon: Icons.upload,
-                  label: 'Upload file',
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet(
-                      context: context,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      builder: (BuildContext context) {
-                        return _buildUploadFileSheet(context, ref);
-                      },
-                    );
-                  },
-                ),
-                _OptionButton(
-                  icon: Icons.link,
-                  label: 'YouTube Link',
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet(
-                      context: context,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      builder: (BuildContext context) {
-                        return _buildYouTubeLinkSheet(context);
-                      },
-                    );
-                  },
-                ),
-                _OptionButton(
-                  icon: Icons.video_call,
-                  label: 'Online Meeting',
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet(
-                      context: context,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      builder: (BuildContext context) {
-                        return _buildOnlineMeetingSheet(context);
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
-          ] else if (state.recordingState == RecordingState.recording) ...[
-            const Text('Recording...', style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Container(
-              height: 100,
-              color: Colors.grey[200],
-              child: const Center(
-                child: Text('Waveform here'),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    viewModel.pauseRecording();
-                  },
-                  child: const Text('Pause'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    viewModel.stopRecording();
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Done'),
-                ),
-              ],
-            ),
-          ] else if (state.recordingState == RecordingState.paused) ...[
-            const Text('Paused', style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            Container(
-              height: 100,
-              color: Colors.grey[200],
-              child: const Center(
-                child: Text('Waveform here'),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    viewModel.resumeRecording();
-                  },
-                  child: const Text('Continue'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    viewModel.stopRecording();
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Done'),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -269,9 +270,8 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: () {
-              viewModel.pickAudioFile2(context).then((_) {
-                print('transcriptionMain: ${state.transcriptionHistory}');
-              });
+              viewModel.pickAudioFile2(context);
+              Navigator.pop(context);
             },
             icon: const Icon(Icons.upload, color: Colors.white),
             label: const Text('Choose file to upload'),
@@ -288,108 +288,8 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
     );
   }
 
-  Widget _buildYouTubeLinkSheet(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Transcribe audio',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Choose language',
-              border: OutlineInputBorder(),
-            ),
-            items: ['Vietnamese', 'English'].map((String language) {
-              return DropdownMenuItem<String>(
-                value: language,
-                child: Text(language),
-              );
-            }).toList(),
-            onChanged: (String? value) {},
-          ),
-          const SizedBox(height: 20),
-          TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Enter YouTube link',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.link),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () {
-              // Add YouTube transcription functionality here
-            },
-            icon: const Icon(Icons.play_arrow, color: Colors.white),
-            label: const Text('Start'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOnlineMeetingSheet(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Schedule Online Meeting',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          // Additional content for online meeting scheduling can be added here
-          // This can include date and time pickers, meeting link fields, etc.
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOptionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Column(
-      children: [
-        IconButton(
-          icon: Icon(icon, color: Colors.purple, size: 30),
-          onPressed: onTap,
-        ),
-        Text(label, style: const TextStyle(color: Colors.purple)),
-      ],
-    );
-  }
+  @override
+  bool get tapOutsideToDismissKeyBoard => true;
 
   @override
   String get screenName => MainRoute.name;
@@ -398,338 +298,6 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
 
   @override
   MainViewModel get viewModel => ref.read(mainProvider.notifier);
-}
-
-class _RecordingOptions extends ConsumerWidget {
-  const _RecordingOptions({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final recordingState = ref.watch(mainProvider);
-
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Choose recording',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (recordingState.recordingState == RecordingState.idle) ...[
-            ElevatedButton.icon(
-              onPressed: () {
-                ref.read(mainProvider.notifier).startRecording();
-              },
-              icon: const Icon(Icons.mic, color: Colors.white),
-              label: const Text('Record'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _OptionButton(
-                  icon: Icons.upload,
-                  label: 'Upload file',
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet(
-                      context: context,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      builder: (BuildContext context) {
-                        return const _UploadFileSheet();
-                      },
-                    );
-                  },
-                ),
-                _OptionButton(
-                  icon: Icons.link,
-                  label: 'YouTube Link',
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet(
-                      context: context,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      builder: (BuildContext context) {
-                        return const _YouTubeLinkSheet();
-                      },
-                    );
-                  },
-                ),
-                _OptionButton(
-                  icon: Icons.video_call,
-                  label: 'Online Meeting',
-                  onTap: () {
-                    Navigator.pop(context);
-                    showModalBottomSheet(
-                      context: context,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      builder: (BuildContext context) {
-                        return const _OnlineMeetingSheet();
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
-          ] else if (recordingState.recordingState ==
-              RecordingState.recording) ...[
-            const Text('Recording...', style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            // Placeholder for a waveform visual
-            Container(
-              height: 100,
-              color: Colors.grey[200],
-              child: const Center(
-                child: Text('Waveform here'),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    ref.read(mainProvider.notifier).pauseRecording();
-                  },
-                  child: const Text('Pause'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    ref.read(mainProvider.notifier).stopRecording();
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Done'),
-                ),
-              ],
-            ),
-          ] else if (recordingState.recordingState ==
-              RecordingState.paused) ...[
-            const Text('Paused', style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-            // Placeholder for a waveform visual
-            Container(
-              height: 100,
-              color: Colors.grey[200],
-              child: const Center(
-                child: Text('Waveform here'),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    ref.read(mainProvider.notifier).resumeRecording();
-                  },
-                  child: const Text('Continue'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    ref.read(mainProvider.notifier).stopRecording();
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Done'),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// Upload File Bottom Sheet
-class _UploadFileSheet extends ConsumerWidget {
-  const _UploadFileSheet({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Upload audio file',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Choose language',
-              border: OutlineInputBorder(),
-            ),
-            items: ['Vietnamese', 'English'].map((String language) {
-              return DropdownMenuItem<String>(
-                value: language,
-                child: Text(language),
-              );
-            }).toList(),
-            onChanged: (String? value) {},
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Selecting the appropriate language helps improve the quality of the recording',
-            style: TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () {
-              ref.read(mainProvider.notifier).pickAudioFile2(context);
-            },
-            icon: const Icon(Icons.upload, color: Colors.white),
-            label: const Text('Choose file to upload'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// YouTube Link Bottom Sheet
-class _YouTubeLinkSheet extends StatelessWidget {
-  const _YouTubeLinkSheet({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Transcribe audio',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Choose language',
-              border: OutlineInputBorder(),
-            ),
-            items: ['Vietnamese', 'English'].map((String language) {
-              return DropdownMenuItem<String>(
-                value: language,
-                child: Text(language),
-              );
-            }).toList(),
-            onChanged: (String? value) {},
-          ),
-          const SizedBox(height: 20),
-          TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Enter YouTube link',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.link),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () {
-              // Add YouTube transcription functionality here
-            },
-            icon: const Icon(Icons.play_arrow, color: Colors.white),
-            label: const Text('Start'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Online Meeting Bottom Sheet
-class _OnlineMeetingSheet extends StatelessWidget {
-  const _OnlineMeetingSheet({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Schedule Online Meeting',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          // Additional content for online meeting scheduling can be added here
-          // This can include date and time pickers, meeting link fields, etc.
-        ],
-      ),
-    );
-  }
 }
 
 // Helper widget for buttons in the recording options sheet
@@ -755,6 +323,136 @@ class _OptionButton extends StatelessWidget {
         ),
         Text(label, style: const TextStyle(color: Colors.purple)),
       ],
+    );
+  }
+}
+
+class YouTubeLinkSheet extends StatefulWidget {
+  final MainViewModel viewModel;
+
+  const YouTubeLinkSheet({Key? key, required this.viewModel}) : super(key: key);
+
+  @override
+  _YouTubeLinkSheetState createState() => _YouTubeLinkSheetState();
+}
+
+class _YouTubeLinkSheetState extends State<YouTubeLinkSheet> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose(); // Giải phóng bộ nhớ
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Tiêu đề và nút đóng
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Transcribe audio',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Dropdown chọn ngôn ngữ
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: 'Choose language',
+                border: OutlineInputBorder(),
+              ),
+              items: ['Vietnamese', 'English'].map((String language) {
+                return DropdownMenuItem<String>(
+                  value: language,
+                  child: Text(language),
+                );
+              }).toList(),
+              onChanged: (String? value) {},
+            ),
+            const SizedBox(height: 20),
+            // Trường nhập liệu cho YouTube link
+            TextFormField(
+              controller: _controller,
+              decoration: const InputDecoration(
+                labelText: 'Enter YouTube link',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.link),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Nút bắt đầu
+            ElevatedButton.icon(
+              onPressed: () {
+                String youtubeLink = _controller.text.trim();
+                if (youtubeLink.isNotEmpty) {
+                  // Xử lý URL để lấy key và videoTitle
+                  Uri? uri = Uri.tryParse(youtubeLink);
+                  if (uri != null &&
+                      (uri.host.contains('youtube.com') ||
+                          uri.host.contains('youtu.be'))) {
+                    String? videoId;
+
+                    if (uri.host.contains('youtu.be')) {
+                      videoId = uri.pathSegments.last;
+                    } else {
+                      videoId = uri.queryParameters['v'];
+                    }
+
+                    if (videoId != null) {
+                      // Gọi phương thức xử lý
+                      widget.viewModel.checkAndDownloadAudio(videoId);
+
+                      Navigator.pop(context);
+                    } else {
+                      // Hiển thị thông báo lỗi nếu không lấy được videoId
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Invalid YouTube link')),
+                      );
+                    }
+                  } else {
+                    // Hiển thị thông báo lỗi nếu URL không hợp lệ
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Please enter a valid YouTube link')),
+                    );
+                  }
+                } else {
+                  // Hiển thị thông báo nếu trường nhập liệu trống
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Please enter a YouTube link')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.play_arrow, color: Colors.white),
+              label: const Text('Start'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

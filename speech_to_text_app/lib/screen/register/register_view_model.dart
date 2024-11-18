@@ -7,25 +7,16 @@ import '../../data/repositories/firebase/auth_repository.dart';
 class RegisterViewModel extends BaseViewModel<RegisterState> {
   RegisterViewModel({
     required this.ref,
-    required this.authRepository,
   }) : super(RegisterState());
 
   Ref ref;
 
-  AuthRepository authRepository;
+  void setEmail(String email) {
+    state = state.copyWith(email: email);
+  }
 
-  Future<void> register({
-    required String email,
-    required String password,
-  }) async {
-    state = state.copyWith(loading: true);
-    try {
-      await authRepository.register(email, password);
-      state = state.copyWith(authenticated: true, loading: false);
-    } catch (e) {
-      state = state.copyWith(loading: false);
-      rethrow;
-    }
+  void setPassword(String password) {
+    state = state.copyWith(password: password);
   }
 
   void togglePasswordVisibility() {

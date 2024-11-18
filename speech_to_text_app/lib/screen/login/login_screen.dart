@@ -3,19 +3,21 @@ import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text_app/components/base_view/base_view.dart';
-import 'package:speech_to_text_app/components/loading/loading_view_model.dart';
+import 'package:speech_to_text_app/data/view_model/auth_viewmodel.dart';
 import 'package:speech_to_text_app/resources/app_text_styles.dart';
 import 'package:speech_to_text_app/screen/login/login_state.dart';
 import 'package:speech_to_text_app/screen/login/login_view_model.dart';
 import 'package:speech_to_text_app/utilities/constants/text_constants.dart';
 
+import '../../components/loading/container_with_loading.dart';
+import '../../components/text_field/common_text_form_field.dart';
 import '../../data/providers/auth_repository_provider.dart';
 import '../../router/app_router.dart';
 
-final _provider = StateNotifierProvider.autoDispose<LoginViewModel, LoginState>(
+final loginProvider =
+    StateNotifierProvider.autoDispose<LoginViewModel, LoginState>(
   (ref) => LoginViewModel(
     ref: ref,
-    authRepository: ref.watch(authRepositoryProvider),
   ),
 );
 
@@ -32,123 +34,111 @@ class _LoginScreenState extends BaseViewState<LoginScreen, LoginViewModel> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  AuthViewModel get authViewModel => ref.read(authViewModelProvider.notifier);
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   PreferredSizeWidget? buildAppBar(BuildContext context) => null;
 
   @override
   Widget buildBody(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(18.0),
-        child: SingleChildScrollView(
-          reverse: true,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                TextConstants.getStart,
-                style: AppTextStyles.s38w700,
-              ),
-              const SizedBox(
-                height: 18,
-              ),
-              Center(
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      TextFormField(
-                        keyboardType: TextInputType.emailAddress,
-                        controller: _emailController,
-                        decoration: const InputDecoration(
+    const minPasswordLengthRequired = 6;
+    return ContainerWithLoading(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(18.0),
+          child: SingleChildScrollView(
+            reverse: true,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  TextConstants.getStart,
+                  style: AppTextStyles.s38w700,
+                ),
+                const SizedBox(height: 18),
+                Center(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        CommonTextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
                           hintText: TextConstants.email,
-                          border: OutlineInputBorder(),
-                        ),
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        validator: (value) {
-                          return value != null &&
-                                  !EmailValidator.validate(value)
-                              ? TextConstants.warningEmail
-                              : null;
-                        },
-                      ),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      TextFormField(
-                        keyboardType: TextInputType.text,
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          hintText: TextConstants.password,
-                          border: OutlineInputBorder(),
-                        ),
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        validator: (value) {
-                          return value != null && value.length < 6
-                              ? TextConstants.warningPassword
-                              : null;
-                        },
-                      ),
-                      const SizedBox(
-                        height: 12,
-                      ),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.5,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              try {
-                                await viewModel.login(
-                                  email: _emailController.text,
-                                  password: _passwordController.text,
-                                );
-                                if (state.authenticated) {
-                                  context.router.replace(const HomeRoute());
-                                }
-                              } on Exception catch (e) {
-                                if (mounted) {
-                                  final errorMessage = e
-                                      .toString()
-                                      .replaceFirst('Exception: ', '');
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(errorMessage),
-                                    ),
-                                  );
-                                }
-                              }
-                            }
+                          validator: (value) {
+                            return value != null &&
+                                    !EmailValidator.validate(value)
+                                ? TextConstants.warningEmail
+                                : null;
                           },
-                          child: state.loading
-                              ? const Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: CircularProgressIndicator(),
-                                )
-                              : const Text(TextConstants.signIn),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 10),
+                        CommonTextFormField(
+                          controller: _passwordController,
+                          keyboardType: TextInputType.text,
+                          obscureText: false,
+                          hintText: TextConstants.password,
+                          validator: (value) {
+                            return value != null &&
+                                    value.length < minPasswordLengthRequired
+                                ? TextConstants.warningPassword
+                                : null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width * 0.5,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (_formKey.currentState!.validate()) {
+                                viewModel.setEmail(_emailController.text);
+                                viewModel.setPassword(_passwordController.text);
+                                await onLoading(() async {
+                                  await authViewModel.loginUser(
+                                    email: _emailController.text,
+                                    password: _passwordController.text,
+                                  );
+                                });
+                                final loginState =
+                                    ref.read(authViewModelProvider);
+                                loginState.when(
+                                  data: (user) {
+                                    context.router.replace(const HomeRoute());
+                                  },
+                                  error: (error, stackTrace) {
+                                    handleError(error);
+                                  },
+                                  loading: () {
+                                    // Bạn có thể hiển thị một loading indicator nếu cần
+                                  },
+                                );
+                              }
+                            },
+                            child: const Text(TextConstants.signIn),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              const Text(TextConstants.dontHaveAccount),
-              const SizedBox(
-                height: 10,
-              ),
-              OutlinedButton(
-                onPressed: () {
-                  context.router.replace(const RegisterRoute());
-                },
-                child: const Text(TextConstants.signUp),
-              ),
-            ],
+                const SizedBox(height: 20),
+                const Text(TextConstants.dontHaveAccount),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: () {
+                    context.router.replace(const RegisterRoute());
+                  },
+                  child: const Text(TextConstants.signUp),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -162,9 +152,5 @@ class _LoginScreenState extends BaseViewState<LoginScreen, LoginViewModel> {
   String get screenName => LoginRoute.name;
 
   @override
-  LoginViewModel get viewModel => ref.read(_provider.notifier);
-
-  LoginState get state => ref.watch(_provider);
-
-  LoadingStateViewModel get loading => ref.read(loadingStateProvider.notifier);
+  LoginViewModel get viewModel => ref.read(loginProvider.notifier);
 }

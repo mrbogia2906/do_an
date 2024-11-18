@@ -17,6 +17,8 @@ final _privateConstructorUsedError = UnsupportedError(
 /// @nodoc
 mixin _$AudioDetailsState {
   bool get loading => throw _privateConstructorUsedError;
+  List<TranscriptionEntry> get transcriptionHistory =>
+      throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $AudioDetailsStateCopyWith<AudioDetailsState> get copyWith =>
@@ -29,7 +31,7 @@ abstract class $AudioDetailsStateCopyWith<$Res> {
           AudioDetailsState value, $Res Function(AudioDetailsState) then) =
       _$AudioDetailsStateCopyWithImpl<$Res, AudioDetailsState>;
   @useResult
-  $Res call({bool loading});
+  $Res call({bool loading, List<TranscriptionEntry> transcriptionHistory});
 }
 
 /// @nodoc
@@ -46,12 +48,17 @@ class _$AudioDetailsStateCopyWithImpl<$Res, $Val extends AudioDetailsState>
   @override
   $Res call({
     Object? loading = null,
+    Object? transcriptionHistory = null,
   }) {
     return _then(_value.copyWith(
       loading: null == loading
           ? _value.loading
           : loading // ignore: cast_nullable_to_non_nullable
               as bool,
+      transcriptionHistory: null == transcriptionHistory
+          ? _value.transcriptionHistory
+          : transcriptionHistory // ignore: cast_nullable_to_non_nullable
+              as List<TranscriptionEntry>,
     ) as $Val);
   }
 }
@@ -64,7 +71,7 @@ abstract class _$$AudioDetailsStateImplCopyWith<$Res>
       __$$AudioDetailsStateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({bool loading});
+  $Res call({bool loading, List<TranscriptionEntry> transcriptionHistory});
 }
 
 /// @nodoc
@@ -79,12 +86,17 @@ class __$$AudioDetailsStateImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? loading = null,
+    Object? transcriptionHistory = null,
   }) {
     return _then(_$AudioDetailsStateImpl(
       loading: null == loading
           ? _value.loading
           : loading // ignore: cast_nullable_to_non_nullable
               as bool,
+      transcriptionHistory: null == transcriptionHistory
+          ? _value._transcriptionHistory
+          : transcriptionHistory // ignore: cast_nullable_to_non_nullable
+              as List<TranscriptionEntry>,
     ));
   }
 }
@@ -92,15 +104,28 @@ class __$$AudioDetailsStateImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$AudioDetailsStateImpl extends _AudioDetailsState {
-  _$AudioDetailsStateImpl({this.loading = true}) : super._();
+  _$AudioDetailsStateImpl(
+      {this.loading = true,
+      final List<TranscriptionEntry> transcriptionHistory = const []})
+      : _transcriptionHistory = transcriptionHistory,
+        super._();
 
   @override
   @JsonKey()
   final bool loading;
+  final List<TranscriptionEntry> _transcriptionHistory;
+  @override
+  @JsonKey()
+  List<TranscriptionEntry> get transcriptionHistory {
+    if (_transcriptionHistory is EqualUnmodifiableListView)
+      return _transcriptionHistory;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_transcriptionHistory);
+  }
 
   @override
   String toString() {
-    return 'AudioDetailsState(loading: $loading)';
+    return 'AudioDetailsState(loading: $loading, transcriptionHistory: $transcriptionHistory)';
   }
 
   @override
@@ -108,11 +133,14 @@ class _$AudioDetailsStateImpl extends _AudioDetailsState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$AudioDetailsStateImpl &&
-            (identical(other.loading, loading) || other.loading == loading));
+            (identical(other.loading, loading) || other.loading == loading) &&
+            const DeepCollectionEquality()
+                .equals(other._transcriptionHistory, _transcriptionHistory));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, loading);
+  int get hashCode => Object.hash(runtimeType, loading,
+      const DeepCollectionEquality().hash(_transcriptionHistory));
 
   @JsonKey(ignore: true)
   @override
@@ -123,11 +151,16 @@ class _$AudioDetailsStateImpl extends _AudioDetailsState {
 }
 
 abstract class _AudioDetailsState extends AudioDetailsState {
-  factory _AudioDetailsState({final bool loading}) = _$AudioDetailsStateImpl;
+  factory _AudioDetailsState(
+          {final bool loading,
+          final List<TranscriptionEntry> transcriptionHistory}) =
+      _$AudioDetailsStateImpl;
   _AudioDetailsState._() : super._();
 
   @override
   bool get loading;
+  @override
+  List<TranscriptionEntry> get transcriptionHistory;
   @override
   @JsonKey(ignore: true)
   _$$AudioDetailsStateImplCopyWith<_$AudioDetailsStateImpl> get copyWith =>

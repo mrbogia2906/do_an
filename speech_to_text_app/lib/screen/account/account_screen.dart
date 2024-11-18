@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text_app/components/base_view/base_view.dart';
 import 'package:speech_to_text_app/components/loading/loading_view_model.dart';
+import 'package:speech_to_text_app/data/view_model/auth_viewmodel.dart';
 import 'package:speech_to_text_app/screen/account/account_state.dart';
 import 'package:speech_to_text_app/screen/account/account_view_model.dart';
+import 'package:speech_to_text_app/screen/home/home_screen.dart';
+import 'package:speech_to_text_app/screen/main/main_screen.dart';
 
+import '../../data/providers/audio_provider.dart';
+import '../../data/providers/transcription_provider.dart';
 import '../../router/app_router.dart';
 
 final accountProvider =
@@ -25,6 +30,8 @@ class AccountScreen extends BaseView {
 }
 
 class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
+  AuthViewModel get authViewModel => ref.read(authViewModelProvider.notifier);
+
   @override
   Future<void> onInitState() async {
     super.onInitState();
@@ -41,9 +48,18 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
     return Container(
       child: ElevatedButton(
         onPressed: () {
-          viewModel.setLoaded();
+          // viewModel.setLoaded();
+          authViewModel.logoutUser();
+          ref.invalidate(homeProvider);
+          ref.invalidate(mainProvider);
+          ref.read(transcriptionProvider.notifier).clearTranscriptions();
+          // Xóa audioFiles nếu cần
+          ref.read(audioFilesProvider.notifier).clearAudioFiles();
+          ref.invalidate(transcriptionProvider);
+          ref.invalidate(audioFilesProvider);
+          context.router.replace(const LoginRoute());
         },
-        child: Text('Set Loaded'),
+        child: Text('Log out'),
       ),
     );
   }

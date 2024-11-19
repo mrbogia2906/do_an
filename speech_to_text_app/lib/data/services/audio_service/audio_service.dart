@@ -104,4 +104,24 @@ class AudioService {
       throw Exception("Failed to fetch transcription");
     }
   }
+
+  Future<void> deleteAudioFile(String audioId, String token) async {
+    final uri = Uri.parse('$baseUrl/audio-files/$audioId');
+    final response = await http.delete(
+      uri,
+      headers: {
+        "Content-Type": "application/json",
+        "x-auth-token": token,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // Xoá thành công
+      print('AudioFile and Transcription deleted successfully.');
+    } else {
+      final responseBody = response.body;
+      throw Exception(
+          'Failed to delete AudioFile: ${response.statusCode} - $responseBody');
+    }
+  }
 }

@@ -4,7 +4,7 @@ class AudioFile {
   final String fileUrl;
   final DateTime uploadedAt;
   final String? transcriptionId;
-  final bool isProcessing; // Thêm trường này nếu cần
+  final bool isProcessing;
 
   AudioFile({
     required this.id,

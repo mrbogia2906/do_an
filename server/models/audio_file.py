@@ -18,4 +18,4 @@ class AudioFile(Base):
     owner = relationship("User", back_populates="audio_files")
     
     # Quan hệ với Transcription (một-một)
-    transcription = relationship("Transcription", back_populates="audio_file", uselist=False)
+    transcription = relationship("Transcription", back_populates="audio_file", uselist=False, cascade="all, delete-orphan")

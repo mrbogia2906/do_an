@@ -1,4 +1,5 @@
 // lib/screen/main/main_view_model.dart
+import 'package:auto_route/auto_route.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +20,7 @@ import '../../data/repositories/auth/auth_local_repository.dart';
 import '../../data/services/audio_service/audio_service.dart';
 
 import '../../data/view_model/auth_viewmodel.dart';
+import '../../utilities/global.dart';
 import 'main_state.dart';
 
 class MainViewModel extends BaseViewModel<MainState> {
@@ -62,7 +64,7 @@ class MainViewModel extends BaseViewModel<MainState> {
   //     ref.read(audioFilesProvider.notifier).setAudioFiles(audioFiles);
   //     state = state.copyWith(isLoading: false);
   //   } catch (e) {
-  //     print('Error fetching audio files: $e');
+  //     debugPrint('Error fetching audio files: $e');
   //     state = state.copyWith(isLoading: false);
   //   }
   // }
@@ -111,7 +113,6 @@ class MainViewModel extends BaseViewModel<MainState> {
   }
 
   Future<void> stopRecording(BuildContext context) async {
-    // Pass context
     if (!_isRecorderInitialized) return;
     String? path = await _audioRecorder!.stopRecorder();
     state = state.copyWith(
@@ -120,20 +121,40 @@ class MainViewModel extends BaseViewModel<MainState> {
     );
 
     if (path != null) {
-      // Lấy token từ AuthLocalRepository
+      // Create tempId and initial TranscriptionEntry
+      final tempId = Uuid().v4();
+      final processingEntry = TranscriptionEntry(
+        id: tempId,
+        transcriptionId: null,
+        audioFileId: 'Recording',
+        content: 'Processing audio file...',
+        createdAt: DateTime.now(),
+        isProcessing: true,
+        isError: false,
+      );
+      ref
+          .read(transcriptionProvider.notifier)
+          .addTranscription(processingEntry);
+
+      // Get token from AuthLocalRepository
       final token = await ref.read(authLocalRepositoryProvider).getToken();
       if (token == null) {
-        // Nếu không có token, thông báo lỗi
-        ref.read(transcriptionProvider.notifier).addTranscription(
-              TranscriptionEntry(
-                id: Uuid().v4(), // Tạo UUID tạm thời
-                audioFileId: 'unknown',
+        // Update TranscriptionEntry with error
+        ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+              tempId,
+              processingEntry.copyWith(
                 content: 'Authentication token missing',
-                createdAt: DateTime.now(),
                 isProcessing: false,
                 isError: true,
               ),
             );
+
+        // Show Snackbar
+        if (scaffoldMessengerKey.currentState != null) {
+          scaffoldMessengerKey.currentState!.showSnackBar(
+            const SnackBar(content: Text('Authentication token missing.')),
+          );
+        }
         return;
       }
 
@@ -145,52 +166,70 @@ class MainViewModel extends BaseViewModel<MainState> {
           token,
         );
 
-        // Thêm audioFile vào audioFilesProvider
-        ref.read(audioFilesProvider.notifier).addAudioFile(uploadedAudio);
-
-        // Tạo TranscriptionEntry với transcription_id từ backend
         if (uploadedAudio.transcriptionId != null) {
-          ref.read(transcriptionProvider.notifier).addTranscription(
-                TranscriptionEntry(
-                  id: uploadedAudio.transcriptionId!,
-                  audioFileId: uploadedAudio.id,
-                  content: 'Transcription in progress',
-                  createdAt: uploadedAudio.uploadedAt,
-                  isProcessing: true,
-                  isError: false,
-                ),
+          // Update TranscriptionEntry with id from backend
+          final updatedEntry = processingEntry.copyWith(
+            id: uploadedAudio.transcriptionId!,
+            transcriptionId: uploadedAudio.transcriptionId,
+            audioFileId: uploadedAudio.id,
+          );
+
+          // Update in provider
+          ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+                tempId,
+                updatedEntry,
               );
 
-          // Bắt đầu polling trạng thái phiên âm
-          pollTranscriptionStatus(uploadedAudio.transcriptionId!);
+          // Add audioFile to audioFilesProvider
+          ref.read(audioFilesProvider.notifier).addAudioFile(uploadedAudio);
+
+          // Start polling transcription status
+          pollTranscriptionStatus(
+            uploadedAudio.id,
+            uploadedAudio.transcriptionId!,
+          );
+
+          // Close modal after successful upload
+          // Navigator.pop(context);
+          // AutoRouter.of(context).pop();
         } else {
-          // Nếu không có transcription_id, thông báo lỗi
-          ref.read(transcriptionProvider.notifier).addTranscription(
-                TranscriptionEntry(
-                  id: Uuid().v4(), // Tạo UUID tạm thời
-                  audioFileId: uploadedAudio.id,
+          // Handle missing transcriptionId
+          ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+                tempId,
+                processingEntry.copyWith(
                   content: 'Transcription ID missing from backend',
-                  createdAt: uploadedAudio.uploadedAt,
                   isProcessing: false,
                   isError: true,
                 ),
               );
-        }
 
-        // Đóng modal sau khi tải lên thành công
-        Navigator.pop(context);
+          // Show Snackbar
+          if (scaffoldMessengerKey.currentState != null) {
+            scaffoldMessengerKey.currentState!.showSnackBar(
+              const SnackBar(
+                  content: Text('Transcription ID missing from backend.')),
+            );
+          }
+        }
       } catch (e) {
-        print('Error uploading audio: $e');
-        ref.read(transcriptionProvider.notifier).addTranscription(
-              TranscriptionEntry(
-                id: Uuid().v4(),
-                audioFileId: 'unknown',
+        debugPrint('Error uploading audio: $e');
+
+        // Update TranscriptionEntry with error
+        ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+              tempId,
+              processingEntry.copyWith(
                 content: e.toString(),
-                createdAt: DateTime.now(),
                 isProcessing: false,
                 isError: true,
               ),
             );
+
+        // Show Snackbar
+        if (scaffoldMessengerKey.currentState != null) {
+          scaffoldMessengerKey.currentState!.showSnackBar(
+            SnackBar(content: Text('Error uploading audio: $e')),
+          );
+        }
       }
     }
   }
@@ -209,41 +248,44 @@ class MainViewModel extends BaseViewModel<MainState> {
     if (result != null && result.files.single.path != null) {
       String? filePath = result.files.single.path;
       if (filePath == null) {
-        print('Selected file path is null.');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to get file path.')),
-        );
+        debugPrint('Selected file path is null.');
+        if (scaffoldMessengerKey.currentState != null) {
+          scaffoldMessengerKey.currentState!.showSnackBar(
+            const SnackBar(content: Text('Failed to get file path.')),
+          );
+        }
+
         return;
       }
 
       state = state.copyWith(audioPath: filePath);
 
-      // file name
       final fileName = result.files.single.name;
-
-      // Lấy token từ AuthLocalRepository
       final token = await ref.read(authLocalRepositoryProvider).getToken();
       if (token == null) {
-        // Nếu không có token, thông báo lỗi
-        ref.read(transcriptionProvider.notifier).addTranscription(
-              TranscriptionEntry(
-                id: Uuid().v4(), // Tạo UUID tạm thời
-                audioFileId: 'unknown',
-                content: 'Authentication token missing',
-                createdAt: DateTime.now(),
-                isProcessing: false,
-                isError: true,
-              ),
-            );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Authentication token missing. Please log in again.')),
-        );
+        // Handle missing token
         return;
       }
 
-      // Gửi yêu cầu phiên âm và truyền `id` và `title`
+      // Tạo tempId
+      final tempId = Uuid().v4();
+
+      // Tạo TranscriptionEntry ban đầu với tempId
+      final processingEntry = TranscriptionEntry(
+        id: tempId,
+        transcriptionId: null,
+        audioFileId: fileName,
+        content: 'Processing audio file...',
+        createdAt: DateTime.now(),
+        isProcessing: true,
+        isError: false,
+      );
+
+      // Thêm vào provider
+      ref
+          .read(transcriptionProvider.notifier)
+          .addTranscription(processingEntry);
+
       try {
         final audioFile = File(filePath);
         final uploadedAudio = await _audioService.uploadAudio(
@@ -252,223 +294,318 @@ class MainViewModel extends BaseViewModel<MainState> {
           token,
         );
 
+        // Cập nhật TranscriptionEntry với id từ backend
+        final updatedEntry = processingEntry.copyWith(
+          id: uploadedAudio.transcriptionId!, // Cập nhật id
+          transcriptionId: uploadedAudio.transcriptionId,
+          audioFileId: uploadedAudio.id,
+        );
+
+        // Cập nhật trong provider
+        ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+              tempId,
+              updatedEntry,
+            );
+
+        // Bắt đầu polling trạng thái phiên âm
+        pollTranscriptionStatus(
+          uploadedAudio.id,
+          uploadedAudio.transcriptionId!,
+        );
+
         // Thêm audioFile vào audioFilesProvider
         ref.read(audioFilesProvider.notifier).addAudioFile(uploadedAudio);
-
-        // Tạo TranscriptionEntry với transcription_id từ backend
-        if (uploadedAudio.transcriptionId != null &&
-            uploadedAudio.transcriptionId!.isNotEmpty) {
-          // Kiểm tra transcriptionId không rỗng
-          ref.read(transcriptionProvider.notifier).addTranscription(
-                TranscriptionEntry(
-                  id: uploadedAudio.transcriptionId ?? 'unknown',
-                  audioFileId: uploadedAudio.id,
-                  content: 'Transcription in progress',
-                  createdAt: uploadedAudio.uploadedAt,
-                  isProcessing: true,
-                  isError: false,
-                ),
-              );
-
-          // Bắt đầu polling trạng thái phiên âm (không await để không chặn)
-          if (uploadedAudio.transcriptionId != null) {
-            pollTranscriptionStatus(uploadedAudio.transcriptionId!);
-          } else {
-            // Handle the case where transcriptionId is null
-            ref.read(transcriptionProvider.notifier).addTranscription(
-                  TranscriptionEntry(
-                    id: Uuid().v4(),
-                    audioFileId: uploadedAudio.id,
-                    content: 'Transcription ID missing from backend',
-                    createdAt: uploadedAudio.uploadedAt,
-                    isProcessing: false,
-                    isError: true,
-                  ),
-                );
-          }
-        } else {
-          // Nếu không có transcription_id, thông báo lỗi
-          ref.read(transcriptionProvider.notifier).addTranscription(
-                TranscriptionEntry(
-                  id: Uuid().v4(),
-                  audioFileId: uploadedAudio.id,
-                  content: 'Transcription ID missing from backend',
-                  createdAt: uploadedAudio.uploadedAt,
-                  isProcessing: false,
-                  isError: true,
-                ),
-              );
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Transcription ID missing from backend.')),
-          );
-        }
-
-        print('Audio file selected: ${state.audioPath}');
       } catch (e) {
-        print('Error uploading audio: $e');
-        ref.read(transcriptionProvider.notifier).addTranscription(
-              TranscriptionEntry(
-                id: Uuid().v4(),
-                audioFileId: 'unknown',
+        // Xử lý lỗi
+        ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+              tempId,
+              processingEntry.copyWith(
                 content: e.toString(),
-                createdAt: DateTime.now(),
                 isProcessing: false,
                 isError: true,
               ),
             );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading audio: $e')),
+        if (scaffoldMessengerKey.currentState != null) {
+          scaffoldMessengerKey.currentState!.showSnackBar(
+            SnackBar(content: Text('Error uploading audio: $e')),
+          );
+        }
+      }
+    } else {
+      debugPrint('No file selected or file path is null');
+      if (scaffoldMessengerKey.currentState != null) {
+        scaffoldMessengerKey.currentState!.showSnackBar(
+          const SnackBar(content: Text('No file selected.')),
         );
       }
-
-      // Navigator.pop(context); // Đóng bottom sheet ngay lập tức
-    } else {
-      print('No file selected or file path is null');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No file selected.')),
-      );
     }
   }
 
-  Future<void> checkAndDownloadAudio(String key) async {
-    final uuid = Uuid();
-    final id = uuid.v4();
+  Future<void> checkAndDownloadAudio(String key, BuildContext context) async {
+    final yt = YoutubeExplode();
+    String videoTitle;
 
-    // Tạo một mục "Processing" và thêm vào danh sách
+    try {
+      var video = await yt.videos.get('https://youtube.com/watch?v=$key');
+      videoTitle = video.title;
+    } catch (e) {
+      debugPrint('Error retrieving video title: $e');
+      videoTitle = 'YouTube Video';
+    } finally {
+      yt.close();
+    }
+
+    final cacheDir = await getTemporaryDirectory();
+    final sanitizedTitle = sanitizeFileName(videoTitle);
+    final savePath = '${cacheDir.path}/$sanitizedTitle.mp3';
+    final file = File(savePath);
+
+    // Tạo tempId và TranscriptionEntry ban đầu
+    final tempId = Uuid().v4();
     final processingEntry = TranscriptionEntry(
-      id: id,
-      audioFileId: 'unknown', // Sẽ được cập nhật sau khi upload
-      content: "Processing...",
+      id: tempId,
+      transcriptionId: null,
+      audioFileId: sanitizedTitle,
+      content: 'Processing audio file...',
       createdAt: DateTime.now(),
       isProcessing: true,
       isError: false,
     );
-
     ref.read(transcriptionProvider.notifier).addTranscription(processingEntry);
 
-    // Bắt đầu quá trình tải xuống và phiên âm
-    try {
-      final yt = YoutubeExplode();
-      String videoTitle;
-
+    if (!await file.exists()) {
+      final audioDownloadManager = ref.read(audioDownloadProvider);
       try {
-        var video = await yt.videos.get('https://youtube.com/watch?v=$key');
-        videoTitle = video.title;
+        await audioDownloadManager.downloadAudioInBackground(key, videoTitle);
       } catch (e) {
-        print('Error retrieving video title: $e');
-        videoTitle = 'YouTube Video';
-      } finally {
-        yt.close();
-      }
+        debugPrint('Error downloading audio: $e');
 
-      final cacheDir = await getTemporaryDirectory();
-
-      // Làm sạch tên tệp
-      final sanitizedTitle = sanitizeFileName(videoTitle);
-      final savePath = '${cacheDir.path}/$sanitizedTitle.mp3';
-
-      final file = File(savePath);
-      if (!await file.exists()) {
-        final audioDownloadManager = ref.read(audioDownloadProvider);
-
-        try {
-          await audioDownloadManager.downloadAudioInBackground(key, videoTitle);
-        } catch (e) {
-          print('Error downloading audio: $e');
-          // Cập nhật mục "Processing" thành "Transcription Failed"
-          ref.read(transcriptionProvider.notifier).updateTranscription(
-                processingEntry.copyWith(
-                  content: e.toString(),
-                  isProcessing: false,
-                  isError: true,
-                ),
-              );
-          return;
-        }
-      }
-
-      // Kiểm tra lại nếu tệp tồn tại sau khi tải xuống
-      if (await file.exists()) {
-        // Cập nhật đường dẫn audio
-        state = state.copyWith(audioPath: savePath);
-
-        // Lấy token từ AuthLocalRepository
-        final token = await ref.read(authLocalRepositoryProvider).getToken();
-        if (token == null) {
-          // Nếu không có token, thông báo lỗi
-          ref.read(transcriptionProvider.notifier).updateTranscription(
-                processingEntry.copyWith(
-                  content: 'Authentication token missing',
-                  isProcessing: false,
-                  isError: true,
-                ),
-              );
-          return;
-        }
-
-        // Gửi yêu cầu phiên âm và truyền `id` và `title`
-        try {
-          final audioFile = File(savePath);
-          final uploadedAudio = await _audioService.uploadAudio(
-            audioFile,
-            videoTitle,
-            token,
-          );
-
-          // Thêm audioFile vào audioFilesProvider
-          ref.read(audioFilesProvider.notifier).addAudioFile(uploadedAudio);
-
-          // Tạo TranscriptionEntry với transcription_id từ backend
-          if (uploadedAudio.transcriptionId != null) {
-            ref.read(transcriptionProvider.notifier).updateTranscription(
-                  processingEntry.copyWith(
-                    id: uploadedAudio.transcriptionId!,
-                    audioFileId: uploadedAudio.id,
-                    content: 'Transcription in progress',
-                    isProcessing: true,
-                    isError: false,
-                  ),
-                );
-
-            // Bắt đầu polling trạng thái phiên âm
-            await pollTranscriptionStatus(uploadedAudio.transcriptionId!);
-          } else {
-            // Nếu không có transcription_id, thông báo lỗi
-            ref.read(transcriptionProvider.notifier).updateTranscription(
-                  processingEntry.copyWith(
-                    content: 'Transcription ID missing from backend',
-                    isProcessing: false,
-                    isError: true,
-                  ),
-                );
-          }
-        } catch (e) {
-          print('Error uploading audio: $e');
-          ref.read(transcriptionProvider.notifier).updateTranscription(
-                processingEntry.copyWith(
-                  content: e.toString(),
-                  isProcessing: false,
-                  isError: true,
-                ),
-              );
-        }
-      } else {
-        print('File does not exist after download');
-        // Cập nhật mục "Processing" thành "Transcription Failed"
-        ref.read(transcriptionProvider.notifier).updateTranscription(
+        // Cập nhật TranscriptionEntry với lỗi
+        ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+              tempId,
               processingEntry.copyWith(
-                content: 'File does not exist after download',
+                content: e.toString(),
                 isProcessing: false,
                 isError: true,
               ),
             );
+
+        // Hiển thị SnackBar
+        if (scaffoldMessengerKey.currentState != null) {
+          scaffoldMessengerKey.currentState!.showSnackBar(
+            SnackBar(content: Text('Error downloading audio: $e')),
+          );
+        }
+
+        return;
+      }
+    }
+
+    if (await file.exists()) {
+      final token = await ref.read(authLocalRepositoryProvider).getToken();
+      if (token == null) {
+        // Cập nhật TranscriptionEntry với lỗi
+        ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+              tempId,
+              processingEntry.copyWith(
+                content: 'Authentication token missing',
+                isProcessing: false,
+                isError: true,
+              ),
+            );
+
+        // Hiển thị SnackBar
+        if (scaffoldMessengerKey.currentState != null) {
+          scaffoldMessengerKey.currentState!.showSnackBar(
+            const SnackBar(content: Text('Authentication token missing')),
+          );
+        }
+
+        return;
+      }
+
+      try {
+        final audioFile = File(savePath);
+        final uploadedAudio = await _audioService.uploadAudio(
+          audioFile,
+          videoTitle,
+          token,
+        );
+
+        if (uploadedAudio.transcriptionId != null) {
+          // Cập nhật TranscriptionEntry với id từ backend
+          final updatedEntry = processingEntry.copyWith(
+            id: uploadedAudio.transcriptionId!, // Cập nhật id
+            transcriptionId: uploadedAudio.transcriptionId,
+            audioFileId: uploadedAudio.id,
+          );
+
+          // Cập nhật trong provider
+          ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+                tempId,
+                updatedEntry,
+              );
+
+          // Thêm audioFile vào audioFilesProvider
+          ref.read(audioFilesProvider.notifier).addAudioFile(uploadedAudio);
+
+          // Bắt đầu polling trạng thái phiên âm
+          pollTranscriptionStatus(
+            uploadedAudio.id,
+            uploadedAudio.transcriptionId!,
+          );
+
+          // Đóng bottom sheet nếu cần
+          Navigator.pop(context);
+        } else {
+          // Nếu không có transcriptionId, xử lý lỗi
+          print('uploadedAudio.transcriptionId is null');
+
+          // Cập nhật TranscriptionEntry với lỗi
+          ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+                tempId,
+                processingEntry.copyWith(
+                  content: 'Transcription ID missing from backend',
+                  isProcessing: false,
+                  isError: true,
+                ),
+              );
+
+          // Hiển thị SnackBar
+          if (scaffoldMessengerKey.currentState != null) {
+            scaffoldMessengerKey.currentState!.showSnackBar(
+              SnackBar(content: Text('Transcription ID missing from backend.')),
+            );
+          }
+        }
+      } catch (e) {
+        print('Error uploading audio: $e');
+
+        // Cập nhật TranscriptionEntry với lỗi
+        ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+              tempId,
+              processingEntry.copyWith(
+                content: e.toString(),
+                isProcessing: false,
+                isError: true,
+              ),
+            );
+
+        // Hiển thị SnackBar
+        // if (scaffoldMessengerKey.currentState != null) {
+        //   scaffoldMessengerKey.currentState!.showSnackBar(
+        //     SnackBar(content: Text('Error uploading audio: $e')),
+        //   );
+        // }
+      }
+    } else {
+      debugPrint('File does not exist after download');
+
+      // Cập nhật TranscriptionEntry với lỗi
+      ref.read(transcriptionProvider.notifier).updateTranscriptionByTempId(
+            tempId,
+            processingEntry.copyWith(
+              content: 'File does not exist after download',
+              isProcessing: false,
+              isError: true,
+            ),
+          );
+
+      // Hiển thị SnackBar
+      if (scaffoldMessengerKey.currentState != null) {
+        scaffoldMessengerKey.currentState!.showSnackBar(
+          const SnackBar(content: Text('File does not exist after download.')),
+        );
+      }
+    }
+  }
+
+  // Phương thức polling trạng thái phiên âm
+  Future<void> pollTranscriptionStatus(
+      String audioFileId, String transcriptionId) async {
+    if (transcriptionId.isEmpty) {
+      debugPrint('pollTranscriptionStatus: transcriptionId is empty');
+      return;
+    }
+
+    debugPrint(
+        'Polling transcription status for transcription ID: $transcriptionId');
+
+    final token = await ref.read(authLocalRepositoryProvider).getToken();
+    if (token == null) {
+      debugPrint('pollTranscriptionStatus: Token missing');
+      ref.read(transcriptionProvider.notifier).updateTranscriptionByAudioFileId(
+            audioFileId,
+            TranscriptionEntry(
+              id: const Uuid().v4(), // Unique ID
+              transcriptionId: transcriptionId,
+              audioFileId: audioFileId,
+              content: 'Authentication token missing',
+              createdAt: DateTime.now(),
+              isProcessing: false,
+              isError: true,
+            ),
+          );
+      return;
+    }
+
+    try {
+      final transcription =
+          await _audioService.getTranscription(transcriptionId, token);
+      debugPrint(
+          'pollTranscriptionStatus: Fetched transcription - ${transcription.id} - isProcessing: ${transcription.isProcessing}');
+
+      if (transcription.isError) {
+        ref
+            .read(transcriptionProvider.notifier)
+            .updateTranscriptionByAudioFileId(
+              audioFileId,
+              TranscriptionEntry(
+                id: const Uuid().v4(), // Unique ID
+                transcriptionId: transcription.transcriptionId,
+                audioFileId: transcription.audioFileId,
+                content: transcription.content ?? 'Unknown error',
+                createdAt: transcription.createdAt,
+                isProcessing: false,
+                isError: true,
+              ),
+            );
+        debugPrint(
+            'pollTranscriptionStatus: Transcription error for ID: ${transcription.id}');
+      } else if (!transcription.isProcessing) {
+        ref
+            .read(transcriptionProvider.notifier)
+            .updateTranscriptionByAudioFileId(
+              audioFileId,
+              TranscriptionEntry(
+                id: const Uuid().v4(), // Unique ID
+                transcriptionId: transcription.transcriptionId,
+                audioFileId: transcription.audioFileId,
+                content: transcription.content ?? 'No content',
+                createdAt: transcription.createdAt,
+                isProcessing: false,
+                isError: false,
+              ),
+            );
+        debugPrint(
+            'pollTranscriptionStatus: Transcription completed for ID: ${transcription.id}');
+      } else {
+        // Nếu vẫn đang xử lý, tiếp tục polling sau 5 giây
+        debugPrint(
+            'pollTranscriptionStatus: Transcription still processing for ID: $transcriptionId. Polling again in 5 seconds.');
+        await Future.delayed(const Duration(seconds: 5));
+        await pollTranscriptionStatus(audioFileId, transcriptionId);
       }
     } catch (e) {
-      print('Error during processing: $e');
-      // Cập nhật mục "Processing" thành "Transcription Failed"
-      ref.read(transcriptionProvider.notifier).updateTranscription(
-            processingEntry.copyWith(
+      debugPrint('Error polling transcription status: $e');
+      ref.read(transcriptionProvider.notifier).updateTranscriptionByAudioFileId(
+            audioFileId,
+            TranscriptionEntry(
+              id: const Uuid().v4(), // Unique ID
+              transcriptionId: transcriptionId,
+              audioFileId: audioFileId,
               content: e.toString(),
+              createdAt: DateTime.now(),
               isProcessing: false,
               isError: true,
             ),
@@ -483,69 +620,5 @@ class MainViewModel extends BaseViewModel<MainState> {
     ref.read(transcriptionProvider.notifier).clearTranscriptions();
     // Xóa audioFiles nếu cần
     ref.read(audioFilesProvider.notifier).clearAudioFiles();
-  }
-
-  // Phương thức polling trạng thái phiên âm
-  Future<void> pollTranscriptionStatus(String transcriptionId) async {
-    final token = await ref.read(authLocalRepositoryProvider).getToken();
-    if (token == null) {
-      // Nếu không có token, thông báo lỗi
-      ref.read(transcriptionProvider.notifier).updateTranscription(
-            TranscriptionEntry(
-              id: transcriptionId,
-              audioFileId: 'unknown',
-              content: 'Authentication token missing',
-              createdAt: DateTime.now(),
-              isProcessing: false,
-              isError: true,
-            ),
-          );
-      return;
-    }
-
-    try {
-      final transcription =
-          await _audioService.getTranscription(transcriptionId, token);
-
-      if (transcription.isError) {
-        ref.read(transcriptionProvider.notifier).updateTranscription(
-              TranscriptionEntry(
-                id: transcription.id,
-                audioFileId: transcription.audioFileId,
-                content: transcription.content ?? 'Unknown error',
-                createdAt: transcription.createdAt,
-                isProcessing: false,
-                isError: true,
-              ),
-            );
-      } else if (!transcription.isProcessing) {
-        ref.read(transcriptionProvider.notifier).updateTranscription(
-              TranscriptionEntry(
-                id: transcription.id,
-                audioFileId: transcription.audioFileId,
-                content: transcription.content ?? 'No content',
-                createdAt: transcription.createdAt,
-                isProcessing: false,
-                isError: false,
-              ),
-            );
-      } else {
-        // Nếu vẫn đang xử lý, tiếp tục polling sau một khoảng thời gian
-        await Future.delayed(Duration(seconds: 5));
-        await pollTranscriptionStatus(transcriptionId);
-      }
-    } catch (e) {
-      print('Error polling transcription status: $e');
-      ref.read(transcriptionProvider.notifier).updateTranscription(
-            TranscriptionEntry(
-              id: transcriptionId,
-              audioFileId: 'unknown',
-              content: e.toString(),
-              createdAt: DateTime.now(),
-              isProcessing: false,
-              isError: true,
-            ),
-          );
-    }
   }
 }

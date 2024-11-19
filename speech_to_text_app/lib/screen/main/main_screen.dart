@@ -34,7 +34,7 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
   Widget buildBody(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final keyboardHeight = mediaQuery.viewInsets.bottom;
-    print('audio main: ${state.audioPath}, mainIsloading1: ${state.isLoading}');
+    // print('audio main: ${state.audioPath}, mainIsloading1: ${state.isLoading}');
     return AutoTabsScaffold(
       routes: const [
         HomeTabRoute(),
@@ -48,8 +48,8 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
           borderRadius: BorderRadius.circular(32),
         ),
         onPressed: () {
-          print(
-              'audio main: ${state.audioPath}, mainIsloading2: ${state.isLoading}');
+          // print(
+          //     'audio main: ${state.audioPath}, mainIsloading2: ${state.isLoading}');
 
           showModalBottomSheet(
             isScrollControlled: true,
@@ -181,6 +181,7 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
                       onPressed: () {
                         viewModel.stopRecording(context);
                         // Navigator.pop(context);
+                        AutoRouter.of(context).pop();
                       },
                       child: const Text('Done'),
                     ),
@@ -217,11 +218,11 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
                   ],
                 ),
               ],
-              if (recordingState.audioPath != null) ...[
-                const SizedBox(height: 20),
-                Text('File ghi âm: ${recordingState.audioPath}'),
-                // Bạn có thể thêm nút để phát lại hoặc tải lên file âm thanh ở đây
-              ],
+              // if (recordingState.audioPath != null) ...[
+              //   const SizedBox(height: 20),
+              //   Text('File ghi âm: ${recordingState.audioPath}'),
+              //   // Bạn có thể thêm nút để phát lại hoặc tải lên file âm thanh ở đây
+              // ],
             ],
           ),
         );
@@ -416,7 +417,7 @@ class _YouTubeLinkSheetState extends State<YouTubeLinkSheet> {
 
                     if (videoId != null) {
                       // Gọi phương thức xử lý
-                      widget.viewModel.checkAndDownloadAudio(videoId);
+                      widget.viewModel.checkAndDownloadAudio(videoId, context);
 
                       Navigator.pop(context);
                     } else {

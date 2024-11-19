@@ -265,9 +265,11 @@ class _RecordingTabState extends State<RecordingTab> {
     } catch (e) {
       print('Error initializing audio player: $e');
       // Hiển thị thông báo lỗi nếu cần
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading audio: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading audio: $e')),
+        );
+      }
     }
   }
 

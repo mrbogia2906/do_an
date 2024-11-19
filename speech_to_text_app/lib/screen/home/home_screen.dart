@@ -70,7 +70,7 @@ class _HomeViewState extends BaseViewState<HomeScreen, HomeViewModel> {
                           (audio) => audio.id == entry.audioFileId,
                           orElse: () => AudioFile(
                             id: 'unknown',
-                            title: 'Unknown Title',
+                            title: 'Processing...',
                             fileUrl: '',
                             uploadedAt: DateTime.now(),
                             transcriptionId: null,
@@ -218,16 +218,41 @@ class RecordingTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final viewModel = ref.read(homeProvider.notifier);
+    print(
+        'RecordingTile - Building for transcription ID: ${entry.id}, isProcessing: ${entry.isProcessing}, audioFileId: ${entry.audioFileId}');
     return Slidable(
+      key: Key(entry.id),
       endActionPane: ActionPane(
         motion: const DrawerMotion(),
         extentRatio: 0.25,
         children: [
           SlidableAction(
-            onPressed: (context) {
-              ref
-                  .read(transcriptionProvider.notifier)
-                  .removeTranscription(entry.id);
+            onPressed: (context) async {
+              // Hiển thị hộp thoại xác nhận trước khi xoá
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Xoá AudioFile'),
+                  content: Text(
+                      'Bạn có chắc chắn muốn xoá AudioFile này và bản transcription liên quan?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text('Không'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: Text('Có'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                // Gọi phương thức xoá AudioFile và Transcription
+                await viewModel.deleteAudioFile(audioFile);
+              }
             },
             backgroundColor: Colors.red,
             foregroundColor: Colors.white,
@@ -238,6 +263,7 @@ class RecordingTile extends ConsumerWidget {
         ],
       ),
       child: Container(
+        width: MediaQuery.of(context).size.width,
         padding: const EdgeInsets.all(16.0),
         margin: const EdgeInsets.symmetric(vertical: 8.0),
         decoration: BoxDecoration(

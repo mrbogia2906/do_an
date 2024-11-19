@@ -17,6 +17,8 @@ from background import upload_to_gcs
 import logging
 from google.cloud import storage
 
+from pydantic_schemas.audio_file import AudioFileResponse, AudioFileUpdateTitle
+
 
 logger = logging.getLogger(__name__)
 
@@ -252,4 +254,111 @@ def generate_signed_url(audio_id: str, db: Session = Depends(get_db), user_dict 
         )
     except Exception as e:
         logger.error("Error generating signed URL:", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/transcriptions/{transcription_id}", status_code=200)
+def delete_transcription(
+    transcription_id: str,
+    db: Session = Depends(get_db),
+    user_dict = Depends(auth_middleware)
+):
+    try:
+        user_id = user_dict['uid']
+        # Truy xuất transcription dựa trên transcription_id và user_id
+        transcription = db.query(Transcription).join(AudioFile).filter(
+            Transcription.id == transcription_id,
+            AudioFile.user_id == user_id
+        ).first()
+
+        if not transcription:
+            raise HTTPException(status_code=404, detail="Transcription not found")
+
+        # Xoá transcription
+        db.delete(transcription)
+        db.commit()
+
+        logger.info(f"Transcription {transcription_id} deleted by user {user_id}")
+
+        return {"detail": "Transcription deleted successfully"}
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error("Error deleting transcription:", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/audio-files/{audio_id}", status_code=200)
+def delete_audio_file(
+    audio_id: str,
+    db: Session = Depends(get_db),
+    user_dict = Depends(auth_middleware)
+):
+    try:
+        user_id = user_dict['uid']
+        # Truy xuất AudioFile dựa trên audio_id và user_id
+        audio_file = db.query(AudioFile).filter(
+            AudioFile.id == audio_id,
+            AudioFile.user_id == user_id
+        ).first()
+
+        if not audio_file:
+            raise HTTPException(status_code=404, detail="AudioFile not found")
+
+        # Xoá tệp âm thanh từ thư mục uploads
+        file_path = os.path.join(UPLOAD_DIR, audio_file.blob_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"Deleted audio file from storage: {file_path}")
+        else:
+            logger.warning(f"Audio file not found in storage: {file_path}")
+
+        # Nếu bạn đang sử dụng Google Cloud Storage, hãy xoá tệp từ GCS
+        # Sẽ cần thêm đoạn mã để xoá từ GCS nếu cần thiết
+        # Ví dụ:
+        from google.cloud import storage
+        client = storage.Client()
+        bucket = client.bucket(os.getenv("GCS_BUCKET_NAME"))
+        blob = bucket.blob(audio_file.blob_name)
+        blob.delete()
+
+        # Xoá AudioFile và Transcription liên quan
+        db.delete(audio_file)
+        db.commit()
+
+        logger.info(f"AudioFile {audio_id} and its Transcription deleted by user {user_id}")
+
+        return {"detail": "AudioFile and Transcription deleted successfully"}
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error("Error deleting AudioFile and Transcription:", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.patch("/audio-files/{audio_id}/title", response_model=AudioFileResponse)
+def update_audio_file_title(
+    audio_id: str,
+    audio_update: AudioFileUpdateTitle,
+    db: Session = Depends(get_db),
+    user_dict = Depends(auth_middleware)
+):
+    try:
+        user_id = user_dict['uid']
+        # Truy xuất AudioFile dựa trên audio_id và user_id
+        audio_file = db.query(AudioFile).filter(
+            AudioFile.id == audio_id,
+            AudioFile.user_id == user_id
+        ).first()
+
+        if not audio_file:
+            raise HTTPException(status_code=404, detail="AudioFile not found")
+
+        audio_file.title = audio_update.title
+        db.commit()
+        db.refresh(audio_file)
+
+        return audio_file
+    except HTTPException as he:
+        raise he
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

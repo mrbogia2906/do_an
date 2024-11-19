@@ -45,7 +45,7 @@ def cors_configuration(bucket_name):
         {
             "origin": ["*"],  # Bạn có thể thay đổi "*" thành các domain cụ thể để tăng cường bảo mật
             "responseHeader": ["Content-Type"],
-            "method": ["GET", "PUT", "POST"],
+            "method": ["GET", "PUT", "POST", "DELETE"],
             "maxAgeSeconds": 3600
         }
     ]

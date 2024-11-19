@@ -1,3 +1,5 @@
+// lib/data/providers/audio_provider.dart
+
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,23 +30,15 @@ class AudioFilesNotifier extends StateNotifier<List<AudioFile>> {
     print('AudioFilesProvider - Added: ${audioFile.id} - ${audioFile.title}');
   }
 
+  void removeAudioFile(String audioFileId) {
+    state = state.where((audio) => audio.id != audioFileId).toList();
+    print('AudioFilesProvider - Removed: $audioFileId');
+  }
+
   void clearAudioFiles() {
     state = [];
     print('AudioFilesProvider - Audio files cleared');
   }
-
-  // Future<void> fetchAudioFiles() async {
-  //   final user = ref.watch(currentUserNotifierProvider);
-  //   if (user == null) return;
-
-  //   try {
-  //     final audioFiles = await _audioService.getAudioFiles(user.token);
-  //     state = audioFiles;
-  //   } catch (e) {
-  //     print("Error fetching audio files: $e");
-  //     // Xử lý lỗi nếu cần
-  //   }
-  // }
 
   Future<void> uploadAudio(File audio, String title) async {
     final user = ref.watch(currentUserNotifierProvider);
@@ -59,12 +53,18 @@ class AudioFilesNotifier extends StateNotifier<List<AudioFile>> {
       // Xử lý lỗi nếu cần
     }
   }
-}
 
-// final transcriptionProvider = FutureProvider.family<TranscriptionEntry, String>(
-//     (ref, transcriptionId) async {
-//   final audioService = AudioService();
-//   final user = ref.watch(currentUserNotifierProvider);
-//   if (user == null) throw Exception("User not logged in");
-//   return await audioService.getTranscription(transcriptionId, user.token);
-// });
+  // Bạn có thể bật lại phương thức fetchAudioFiles nếu cần
+  // Future<void> fetchAudioFiles() async {
+  //   final user = ref.watch(currentUserNotifierProvider);
+  //   if (user == null) return;
+
+  //   try {
+  //     final audioFiles = await _audioService.getAudioFiles(user.token);
+  //     state = audioFiles;
+  //   } catch (e) {
+  //     print("Error fetching audio files: $e");
+  //     // Xử lý lỗi nếu cần
+  //   }
+  // }
+}

@@ -13,11 +13,13 @@ class MainState with _$MainState {
     @Default(false) bool isLoading,
     @Default(RecordingState.idle) RecordingState recordingState,
     String? audioPath,
+    String? error,
   }) = _MainState;
 }
 
 class TranscriptionEntry {
-  final String id; // Corresponds to transcription_id from backend
+  final String id; // Unique identifier, e.g., UUID
+  final String? transcriptionId; // transcription_id từ backend, nullable
   final String audioFileId; // Corresponds to AudioFile.id
   final String? content;
   final DateTime createdAt;
@@ -26,6 +28,7 @@ class TranscriptionEntry {
 
   TranscriptionEntry({
     required this.id,
+    this.transcriptionId,
     required this.audioFileId,
     this.content,
     required this.createdAt,
@@ -35,6 +38,7 @@ class TranscriptionEntry {
 
   TranscriptionEntry copyWith({
     String? id,
+    String? transcriptionId,
     String? audioFileId,
     String? content,
     DateTime? createdAt,
@@ -43,6 +47,7 @@ class TranscriptionEntry {
   }) {
     return TranscriptionEntry(
       id: id ?? this.id,
+      transcriptionId: transcriptionId ?? this.transcriptionId,
       audioFileId: audioFileId ?? this.audioFileId,
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
@@ -54,15 +59,17 @@ class TranscriptionEntry {
   factory TranscriptionEntry.fromJson(Map<String, dynamic> json) =>
       TranscriptionEntry(
         id: json['id'],
+        transcriptionId: json['transcription_id'],
         audioFileId: json['audio_file_id'],
         content: json['content'],
         createdAt: DateTime.parse(json['created_at']),
-        isProcessing: json['is_processing'],
-        isError: json['is_error'],
+        isProcessing: json['is_processing'] ?? false,
+        isError: json['is_error'] ?? false,
       );
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'transcription_id': transcriptionId,
         'audio_file_id': audioFileId,
         'content': content,
         'created_at': createdAt.toIso8601String(),

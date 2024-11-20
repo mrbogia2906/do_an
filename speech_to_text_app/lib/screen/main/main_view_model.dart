@@ -1,16 +1,13 @@
 // lib/screen/main/main_view_model.dart
-import 'package:auto_route/auto_route.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sound/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:speech_to_text_app/utilities/constants/server_constants.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
-import 'dart:convert';
 import 'package:uuid/uuid.dart';
+import 'package:audio_waveforms/audio_waveforms.dart';
 
 import '../../components/base_view/base_view_model.dart';
 import '../../data/providers/audio_download_provider.dart';
@@ -24,76 +21,45 @@ import '../../utilities/global.dart';
 import 'main_state.dart';
 
 class MainViewModel extends BaseViewModel<MainState> {
-  MainViewModel({required this.ref}) : super(const MainState()) {
-    _init();
-    // fetchAudioFiles(); // Fetch existing audio files when ViewModel is initialized
-  }
+  MainViewModel({required this.ref}) : super(const MainState());
+  // {
+  //   _init();
+  //   // fetchAudioFiles(); // Fetch existing audio files when ViewModel is initialized
+  // }
 
   final Ref ref;
   final AudioService _audioService = AudioService();
-  FlutterSoundRecorder? _audioRecorder;
-  String? _audioPath;
-  bool _isRecorderInitialized = false;
+  // FlutterSoundRecorder? _audioRecorder;
 
-  Future<void> _init() async {
-    _audioRecorder = FlutterSoundRecorder();
-    await _audioRecorder!.openRecorder();
-    _isRecorderInitialized = true;
-    _audioRecorder!.setSubscriptionDuration(const Duration(milliseconds: 500));
-  }
+  final RecorderController recorderController = RecorderController();
 
   @override
   void dispose() {
-    _audioRecorder?.closeRecorder();
-    _audioRecorder = null;
+    recorderController.dispose();
+
     super.dispose();
   }
 
-  // Fetch existing audio files from backend
-  // Future<void> fetchAudioFiles() async {
-  //   state = state.copyWith(isLoading: true);
-  //   final token = await ref.read(authLocalRepositoryProvider).getToken();
-  //   if (token == null) {
-  //     // Handle token missing
-  //     state = state.copyWith(isLoading: false);
-  //     return;
-  //   }
-
-  //   try {
-  //     final audioFiles = await _audioService.getAudioFiles(token);
-  //     ref.read(audioFilesProvider.notifier).setAudioFiles(audioFiles);
-  //     state = state.copyWith(isLoading: false);
-  //   } catch (e) {
-  //     debugPrint('Error fetching audio files: $e');
-  //     state = state.copyWith(isLoading: false);
-  //   }
-  // }
-
   Future<void> startRecording() async {
-    if (!_isRecorderInitialized) return;
-
-    // Kiểm tra và yêu cầu quyền truy cập microphone
+    // Check and request microphone permission
     var status = await Permission.microphone.status;
     if (!status.isGranted) {
       status = await Permission.microphone.request();
       if (!status.isGranted) {
-        // Quyền không được cấp
+        // Permission not granted
         return;
       }
     }
 
-    // Lấy đường dẫn để lưu file ghi âm
+    // Set the file path for recording
     Directory appDirectory = await getApplicationDocumentsDirectory();
     String filePath =
-        '${appDirectory.path}/recording_${DateTime.now().millisecondsSinceEpoch}.aac';
+        '${appDirectory.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
-    // Bắt đầu ghi âm
-    await _audioRecorder!.startRecorder(
-      toFile: filePath,
-      codec: Codec.aacADTS,
-    );
+    // Start recording
+    await recorderController.record(path: filePath);
 
-    // Cập nhật trạng thái
+    // Update state
     state = state.copyWith(
       recordingState: RecordingState.recording,
       audioPath: filePath,
@@ -101,20 +67,17 @@ class MainViewModel extends BaseViewModel<MainState> {
   }
 
   Future<void> pauseRecording() async {
-    if (!_isRecorderInitialized) return;
-    await _audioRecorder!.pauseRecorder();
+    await recorderController.pause();
     state = state.copyWith(recordingState: RecordingState.paused);
   }
 
   Future<void> resumeRecording() async {
-    if (!_isRecorderInitialized) return;
-    await _audioRecorder!.resumeRecorder();
+    await recorderController.record();
     state = state.copyWith(recordingState: RecordingState.recording);
   }
 
   Future<void> stopRecording(BuildContext context) async {
-    if (!_isRecorderInitialized) return;
-    String? path = await _audioRecorder!.stopRecorder();
+    final path = await recorderController.stop();
     state = state.copyWith(
       recordingState: RecordingState.idle,
       audioPath: path,
@@ -293,6 +256,13 @@ class MainViewModel extends BaseViewModel<MainState> {
           fileName,
           token,
         );
+
+        // final uploadedTrancription =
+        //     await _audioService.uploadAudioWithGoogleSTT(
+        //   audioFile,
+        //   fileName,
+        //   token,
+        // );
 
         // Cập nhật TranscriptionEntry với id từ backend
         final updatedEntry = processingEntry.copyWith(
@@ -537,7 +507,7 @@ class MainViewModel extends BaseViewModel<MainState> {
       ref.read(transcriptionProvider.notifier).updateTranscriptionByAudioFileId(
             audioFileId,
             TranscriptionEntry(
-              id: const Uuid().v4(), // Unique ID
+              id: transcriptionId, // Unique ID
               transcriptionId: transcriptionId,
               audioFileId: audioFileId,
               content: 'Authentication token missing',
@@ -561,7 +531,7 @@ class MainViewModel extends BaseViewModel<MainState> {
             .updateTranscriptionByAudioFileId(
               audioFileId,
               TranscriptionEntry(
-                id: const Uuid().v4(), // Unique ID
+                id: transcriptionId, // Unique ID
                 transcriptionId: transcription.transcriptionId,
                 audioFileId: transcription.audioFileId,
                 content: transcription.content ?? 'Unknown error',
@@ -578,7 +548,7 @@ class MainViewModel extends BaseViewModel<MainState> {
             .updateTranscriptionByAudioFileId(
               audioFileId,
               TranscriptionEntry(
-                id: const Uuid().v4(), // Unique ID
+                id: transcriptionId, // Unique ID
                 transcriptionId: transcription.transcriptionId,
                 audioFileId: transcription.audioFileId,
                 content: transcription.content ?? 'No content',
@@ -601,7 +571,7 @@ class MainViewModel extends BaseViewModel<MainState> {
       ref.read(transcriptionProvider.notifier).updateTranscriptionByAudioFileId(
             audioFileId,
             TranscriptionEntry(
-              id: const Uuid().v4(), // Unique ID
+              id: transcriptionId, // Unique ID
               transcriptionId: transcriptionId,
               audioFileId: audioFileId,
               content: e.toString(),

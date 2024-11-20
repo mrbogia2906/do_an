@@ -34,6 +34,11 @@ class TranscriptionNotifier extends StateNotifier<List<TranscriptionEntry>> {
         'TranscriptionProvider - Updated: ${updatedEntry.id} - ${updatedEntry.content}');
   }
 
+  void setTranscriptions(List<TranscriptionEntry> transcriptions) {
+    state = transcriptions;
+    print('TranscriptionProvider - Set transcriptions');
+  }
+
   // Xóa TranscriptionEntry dựa trên audioFileId
   void removeTranscription(String audioFileId) {
     state = state.where((entry) => entry.audioFileId != audioFileId).toList();

@@ -18,9 +18,10 @@ class MainState with _$MainState {
 }
 
 class TranscriptionEntry {
-  final String id; // Unique identifier, e.g., UUID
-  final String? transcriptionId; // transcription_id từ backend, nullable
-  final String audioFileId; // Corresponds to AudioFile.id
+  final String id;
+  final String? transcriptionId;
+  final String audioFileId;
+  final List<WordInfo>? words;
   final String? content;
   final DateTime createdAt;
   final bool isProcessing;
@@ -30,16 +31,53 @@ class TranscriptionEntry {
     required this.id,
     this.transcriptionId,
     required this.audioFileId,
+    this.words,
     this.content,
     required this.createdAt,
     this.isProcessing = false,
     this.isError = false,
   });
 
+  // Factory constructor để tạo TranscriptionEntry từ JSON
+  factory TranscriptionEntry.fromJson(Map<String, dynamic> json) {
+    var wordsFromJson = json['words'] as List<dynamic>?;
+
+    return TranscriptionEntry(
+      id: json['id'],
+      transcriptionId: json['transcription_id'],
+      audioFileId: json['audio_file_id'],
+      content: json['content'],
+      createdAt: DateTime.parse(json['created_at']),
+      isProcessing: json['is_processing'] ?? false,
+      isError: json['is_error'] ?? false,
+      words: wordsFromJson != null
+          ? wordsFromJson
+              .map((wordJson) => WordInfo.fromJson(wordJson))
+              .toList()
+          : [],
+    );
+  }
+
+  // Chuyển TranscriptionEntry thành JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'transcription_id': transcriptionId,
+      'audio_file_id': audioFileId,
+      'content': content,
+      'created_at': createdAt.toIso8601String(),
+      'is_processing': isProcessing,
+      'is_error': isError,
+      'words': words?.map((word) => word.toJson()).toList(),
+    };
+  }
+
+  // Phương thức copyWith để sao chép TranscriptionEntry với các giá trị mới
   TranscriptionEntry copyWith({
     String? id,
     String? transcriptionId,
     String? audioFileId,
+    List<WordInfo>? words,
     String? content,
     DateTime? createdAt,
     bool? isProcessing,
@@ -49,33 +87,56 @@ class TranscriptionEntry {
       id: id ?? this.id,
       transcriptionId: transcriptionId ?? this.transcriptionId,
       audioFileId: audioFileId ?? this.audioFileId,
+      words: words ?? this.words,
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       isProcessing: isProcessing ?? this.isProcessing,
       isError: isError ?? this.isError,
     );
   }
+}
 
-  factory TranscriptionEntry.fromJson(Map<String, dynamic> json) =>
-      TranscriptionEntry(
-        id: json['id'],
-        transcriptionId: json['transcription_id'],
-        audioFileId: json['audio_file_id'],
-        content: json['content'],
-        createdAt: DateTime.parse(json['created_at']),
-        isProcessing: json['is_processing'] ?? false,
-        isError: json['is_error'] ?? false,
-      );
+class WordInfo {
+  final String word;
+  final double startTime; // In seconds
+  final double endTime; // In seconds
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'transcription_id': transcriptionId,
-        'audio_file_id': audioFileId,
-        'content': content,
-        'created_at': createdAt.toIso8601String(),
-        'is_processing': isProcessing,
-        'is_error': isError,
-      };
+  WordInfo({
+    required this.word,
+    required this.startTime,
+    required this.endTime,
+  });
+
+  // Factory constructor để tạo WordInfo từ JSON
+  factory WordInfo.fromJson(Map<String, dynamic> json) {
+    return WordInfo(
+      word: json['word'],
+      startTime: (json['start_time'] as num).toDouble(),
+      endTime: (json['end_time'] as num).toDouble(),
+    );
+  }
+
+  // Chuyển WordInfo thành JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'word': word,
+      'start_time': startTime,
+      'end_time': endTime,
+    };
+  }
+
+  // Phương thức copyWith để sao chép WordInfo với các giá trị mới
+  WordInfo copyWith({
+    String? word,
+    double? startTime,
+    double? endTime,
+  }) {
+    return WordInfo(
+      word: word ?? this.word,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+    );
+  }
 }
 
 enum RecordingState { idle, recording, paused }

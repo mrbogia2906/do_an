@@ -1,5 +1,6 @@
 # models/transcription.py
 from sqlalchemy import Column, String, ForeignKey, DateTime, Text, Boolean
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from models.base import Base
 from datetime import datetime
@@ -13,6 +14,7 @@ class Transcription(Base):
     is_processing = Column(Boolean, default=True)
     is_error = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    word_timings = Column(JSONB, nullable=True)
 
     # Quan hệ với AudioFile, xác định mối quan hệ một-một
     audio_file = relationship(
@@ -20,3 +22,6 @@ class Transcription(Base):
         back_populates="transcription",
         uselist=False  # Một-một
     )
+    
+    todos = relationship("Todo", back_populates="transcription", cascade="all, delete-orphan")
+

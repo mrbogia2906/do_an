@@ -19,7 +19,7 @@ class HomeViewModel extends BaseViewModel<HomeState> {
 
   final Ref ref;
   final AudioService _audioService = AudioService();
-  final String _baseUrl = ServerConstant.serverURL;
+  // final String _baseUrl = ServerConstant.serverURL;
 
   Future<void> initData() async {
     print('HomeViewModel: initData called');
@@ -36,132 +36,86 @@ class HomeViewModel extends BaseViewModel<HomeState> {
       ref.read(audioFilesProvider.notifier).setAudioFiles(audioFiles);
       state = state.copyWith(audioFiles: audioFiles, isLoading: false);
 
-      // Fetch transcription content for each audio file
+      // Prepare a list to collect TranscriptionEntry Futures
+      List<Future<TranscriptionEntry>> transcriptionEntryFutures = [];
+
+      // Collect all futures for fetching transcriptions
       for (var audio in audioFiles) {
         if (!audio.isProcessing && audio.transcriptionId != null) {
-          try {
-            final transcription = await _audioService.getTranscription(
-                audio.transcriptionId!, token);
-            print('HomeViewModel: Fetched transcription for ${audio.id}');
-
-            // Kiểm tra xem TranscriptionEntry đã tồn tại chưa dựa trên audioFileId
-            bool exists = ref
-                .read(transcriptionProvider)
-                .any((entry) => entry.audioFileId == audio.id);
-            if (!exists) {
-              ref.read(transcriptionProvider.notifier).addTranscription(
-                    TranscriptionEntry(
-                      id: Uuid().v4(), // Unique ID (UUID)
-                      transcriptionId: transcription.transcriptionId,
-                      audioFileId: audio.id,
-                      content: transcription.content ?? 'No content',
-                      createdAt: transcription.createdAt,
-                      isProcessing: transcription.isProcessing,
-                      isError: transcription.isError,
-                    ),
-                  );
-            }
-          } catch (e) {
-            print(
-                'HomeViewModel: Error fetching transcription for ${audio.id}: $e');
-            bool exists = ref
-                .read(transcriptionProvider)
-                .any((entry) => entry.audioFileId == audio.id);
-            if (!exists) {
-              ref.read(transcriptionProvider.notifier).addTranscription(
-                    TranscriptionEntry(
-                      id: Uuid().v4(), // Unique ID (UUID)
-                      transcriptionId: audio.transcriptionId,
-                      audioFileId: audio.id,
-                      content: 'Failed to fetch transcription.',
-                      createdAt: audio.uploadedAt,
-                      isProcessing: false,
-                      isError: true,
-                    ),
-                  );
-            }
-          }
+          // Add a future to the list
+          transcriptionEntryFutures.add(_fetchTranscriptionEntry(audio, token));
         } else if (audio.isProcessing) {
-          // Add entry with processing state if not exists
-          bool exists = ref
-              .read(transcriptionProvider)
-              .any((entry) => entry.audioFileId == audio.id);
-          if (!exists &&
-              audio.transcriptionId != null &&
+          if (audio.transcriptionId != null &&
               audio.transcriptionId!.isNotEmpty) {
-            print('HomeViewModel: Transcription in progress for ${audio.id}');
-            ref.read(transcriptionProvider.notifier).addTranscription(
-                  TranscriptionEntry(
-                    id: Uuid().v4(), // Unique ID (UUID)
-                    transcriptionId: audio.transcriptionId,
-                    audioFileId: audio.id, // AudioFile.id
-                    content: 'Transcription in progress...',
-                    createdAt: audio.uploadedAt,
-                    isProcessing: true,
-                    isError: false,
-                  ),
-                );
+            transcriptionEntryFutures.add(Future.value(
+              TranscriptionEntry(
+                id: Uuid().v4(),
+                transcriptionId: audio.transcriptionId,
+                audioFileId: audio.id,
+                content: 'Transcription in progress...',
+                createdAt: audio.uploadedAt,
+                isProcessing: true,
+                isError: false,
+              ),
+            ));
           }
         } else {
-          // Add entry with no transcription if not exists
-          bool exists = ref
-              .read(transcriptionProvider)
-              .any((entry) => entry.audioFileId == audio.id);
-          if (!exists) {
-            print('HomeViewModel: No transcription available for ${audio.id}');
-            ref.read(transcriptionProvider.notifier).addTranscription(
-                  TranscriptionEntry(
-                    id: Uuid().v4(), // Unique ID (UUID)
-                    transcriptionId: null,
-                    audioFileId: audio.id,
-                    content: 'No transcription available.',
-                    createdAt: audio.uploadedAt,
-                    isProcessing: false,
-                    isError: false,
-                  ),
-                );
-          }
+          transcriptionEntryFutures.add(Future.value(
+            TranscriptionEntry(
+              id: Uuid().v4(),
+              transcriptionId: null,
+              audioFileId: audio.id,
+              content: 'No transcription available.',
+              createdAt: audio.uploadedAt,
+              isProcessing: false,
+              isError: false,
+            ),
+          ));
         }
       }
+
+      // Await all the futures
+      List<TranscriptionEntry> transcriptionEntries =
+          await Future.wait(transcriptionEntryFutures);
+
+      // After collecting all TranscriptionEntries, update the provider at once
+      ref
+          .read(transcriptionProvider.notifier)
+          .setTranscriptions(transcriptionEntries);
     } catch (e) {
       print('HomeViewModel: Error fetching audio files: $e');
       state = state.copyWith(isLoading: false);
     }
   }
 
-  /// Phương thức để xoá Transcription
-  Future<void> deleteTranscription(TranscriptionEntry entry) async {
-    final token = await ref.read(authLocalRepositoryProvider).getToken();
-    if (token == null) {
-      // Xử lý khi token bị thiếu, ví dụ: chuyển hướng tới trang đăng nhập
-      print('Token is missing. Please log in again.');
-      return;
-    }
-
-    final url = Uri.parse("$_baseUrl/transcriptions/${entry.transcriptionId}");
-
+  Future<TranscriptionEntry> _fetchTranscriptionEntry(
+      AudioFile audio, String token) async {
     try {
-      final response = await http.delete(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
+      final transcription =
+          await _audioService.getTranscription(audio.transcriptionId!, token);
+      print('HomeViewModel: Fetched transcription for ${audio.id}');
 
-      if (response.statusCode == 200) {
-        // Xoá transcription từ local state
-        removeTranscriptionEntry(entry);
-        // Thông báo thành công (tuỳ chọn)
-        print('Transcription deleted successfully.');
-      } else {
-        // Xử lý lỗi từ backend
-        print('Failed to delete transcription: ${response.statusCode}');
-        print('Response body: ${response.body}');
-      }
+      return TranscriptionEntry(
+        id: transcription.id, // Unique ID (UUID)
+        transcriptionId: transcription.transcriptionId,
+        audioFileId: audio.id,
+        content: transcription.content ?? 'No content',
+        createdAt: transcription.createdAt,
+        isProcessing: transcription.isProcessing,
+        isError: transcription.isError,
+      );
     } catch (e) {
-      print('Error deleting transcription: $e');
-      // Xử lý lỗi, ví dụ: hiển thị thông báo cho người dùng
+      print('HomeViewModel: Error fetching transcription for ${audio.id}: $e');
+
+      return TranscriptionEntry(
+        id: Uuid().v4(), // Unique ID (UUID)
+        transcriptionId: audio.transcriptionId,
+        audioFileId: audio.id,
+        content: 'Failed to fetch transcription.',
+        createdAt: audio.uploadedAt,
+        isProcessing: false,
+        isError: true,
+      );
     }
   }
 
@@ -200,5 +154,55 @@ class HomeViewModel extends BaseViewModel<HomeState> {
     ref.read(transcriptionProvider.notifier).removeTranscription(audioFile.id);
   }
 
+  Future<void> updateAudioFileTitle(
+      AudioFile audioFile, String newTitle) async {
+    final token = await ref.read(authLocalRepositoryProvider).getToken();
+    if (token == null) {
+      // Xử lý khi token bị thiếu, ví dụ: chuyển hướng tới trang đăng nhập
+      print('Token is missing. Please log in again.');
+      return;
+    }
+
+    try {
+      // Nếu bạn muốn thêm trạng thái loading, cập nhật state ở đây
+      // state = state.copyWith(isUpdatingTitle: true);
+
+      final updatedAudioFile = await _audioService.updateAudioFileTitle(
+          audioFile.id, newTitle, token);
+
+      // Cập nhật AudioFile trong local state
+      ref.read(audioFilesProvider.notifier).updateAudioFile(updatedAudioFile);
+
+      // Nếu cần, cập nhật TranscriptionEntry liên quan (nếu nó chứa thông tin title từ AudioFile)
+      final transcriptionEntries = ref.read(transcriptionProvider);
+      final updatedTranscriptions = transcriptionEntries.map((entry) {
+        if (entry.audioFileId == audioFile.id) {
+          return TranscriptionEntry(
+            id: entry.id,
+            transcriptionId: entry.transcriptionId,
+            audioFileId: entry.audioFileId,
+            content: entry.content,
+            createdAt: entry.createdAt,
+            isProcessing: entry.isProcessing,
+            isError: entry.isError,
+          );
+        }
+        return entry;
+      }).toList();
+      ref
+          .read(transcriptionProvider.notifier)
+          .setTranscriptions(updatedTranscriptions);
+
+      print('AudioFile title updated successfully.');
+
+      // Nếu bạn thêm trạng thái loading, cập nhật state sau khi cập nhật xong
+      // state = state.copyWith(isUpdatingTitle: false);
+    } catch (e) {
+      print('Error updating AudioFile title: $e');
+      // Nếu bạn thêm trạng thái loading, cập nhật state nếu có lỗi
+      // state = state.copyWith(isUpdatingTitle: false);
+      // Xử lý lỗi, ví dụ: hiển thị thông báo cho người dùng
+    }
+  }
   // Các phương thức khác nếu cần
 }

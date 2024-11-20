@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:speech_to_text_app/components/base_view/base_view.dart';
+import 'package:speech_to_text_app/components/loading/container_with_loading.dart';
 import 'package:speech_to_text_app/components/loading/loading_view_model.dart';
 import 'package:speech_to_text_app/screen/home/home_state.dart';
 import 'package:speech_to_text_app/screen/home/home_view_model.dart';
@@ -48,10 +49,11 @@ class _HomeViewState extends BaseViewState<HomeScreen, HomeViewModel> {
     print(
         'transcriptionHistoryHome: ${transcriptionHistory.length}, audioFiles: ${audioFiles.length}');
 
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+    return ContainerWithLoading(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
         child: SingleChildScrollView(
+          padding: EdgeInsets.zero,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -221,103 +223,191 @@ class RecordingTile extends ConsumerWidget {
     final viewModel = ref.read(homeProvider.notifier);
     print(
         'RecordingTile - Building for transcription ID: ${entry.id}, isProcessing: ${entry.isProcessing}, audioFileId: ${entry.audioFileId}');
-    return Slidable(
-      key: Key(entry.id),
-      endActionPane: ActionPane(
-        motion: const DrawerMotion(),
-        extentRatio: 0.25,
-        children: [
-          SlidableAction(
-            onPressed: (context) async {
-              // Hiển thị hộp thoại xác nhận trước khi xoá
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text('Xoá AudioFile'),
-                  content: Text(
-                      'Bạn có chắc chắn muốn xoá AudioFile này và bản transcription liên quan?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: Text('Không'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: Text('Có'),
-                    ),
+    return SizedBox(
+      height: 180,
+      child: Slidable(
+        key: Key(entry.id),
+        enabled: !entry.isProcessing,
+        endActionPane: ActionPane(
+          motion: const DrawerMotion(),
+          extentRatio: 0.5,
+          children: [
+            CustomSlidableAction(
+              onPressed: (context) async {
+                final newTitle = await showDialog<String>(
+                    context: context,
+                    builder: (context) {
+                      final controller =
+                          TextEditingController(text: audioFile.title);
+                      return AlertDialog(
+                        title: const Text('Update title'),
+                        content: TextField(
+                          controller: controller,
+                          decoration: const InputDecoration(
+                            hintText: 'Enter new title',
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.of(context).pop(controller.text),
+                            child: const Text('Update'),
+                          ),
+                        ],
+                      );
+                    });
+                if (newTitle != null && newTitle.trim().isNotEmpty) {
+                  // Gọi phương thức cập nhật title
+                  await viewModel.updateAudioFileTitle(
+                      audioFile, newTitle.trim());
+                  // Không sử dụng SnackBar để tránh lỗi
+                }
+              },
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.transparent,
+              borderRadius: BorderRadius.circular(12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Container(
+                height: 164,
+                width: MediaQuery.of(context).size.width / 2,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(Icons.edit, color: Colors.white),
+                    Text('Edit title',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontSize: 12)),
                   ],
                 ),
-              );
+              ),
+            ),
+            CustomSlidableAction(
+              onPressed: (context) async {
+                // Hiển thị hộp thoại xác nhận trước khi xoá
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Xoá AudioFile'),
+                    content: const Text(
+                        'Bạn có chắc chắn muốn xoá AudioFile này và bản transcription liên quan?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Không'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text('Có'),
+                      ),
+                    ],
+                  ),
+                );
 
-              if (confirm == true) {
-                // Gọi phương thức xoá AudioFile và Transcription
-                await viewModel.deleteAudioFile(audioFile);
-              }
-            },
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-            icon: Icons.delete,
-            label: 'Delete',
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-        ],
-      ),
-      child: Container(
-        width: MediaQuery.of(context).size.width,
-        padding: const EdgeInsets.all(16.0),
-        margin: const EdgeInsets.symmetric(vertical: 8.0),
-        decoration: BoxDecoration(
-          color: entry.isError
-              ? Colors.red.shade50
-              : (entry.isProcessing ? Colors.grey.shade200 : Colors.white),
-          borderRadius: BorderRadius.circular(12.0),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4.0,
-              offset: Offset(0, 2),
+                if (confirm == true) {
+                  // Gọi phương thức xoá AudioFile và Transcription
+                  await viewModel.deleteAudioFile(audioFile);
+                }
+              },
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.transparent,
+              borderRadius: BorderRadius.circular(12.0),
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Container(
+                height: 164,
+                width: MediaQuery.of(context).size.width / 2,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20), // Đặt chiều cao tùy chỉnh
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.delete, color: Colors.white),
+                    Text('Delete',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontSize: 12)),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              audioFile.title, // Lấy title từ AudioFile
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
-                color: entry.isError
-                    ? Colors.red
-                    : (entry.isProcessing ? Colors.grey : Colors.black),
-              ),
-            ),
-            if (entry.isProcessing) ...[
-              const SizedBox(height: 8.0),
-              const LinearProgressIndicator(),
-            ] else if (entry.isError) ...[
-              const SizedBox(height: 4.0),
-              Text(
-                entry.content ?? 'An error occurred.',
-                style: const TextStyle(fontSize: 14.0, color: Colors.red),
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ] else ...[
-              const SizedBox(height: 4.0),
-              Text(
-                entry.content ?? 'No transcription available.',
-                style: const TextStyle(fontSize: 14.0, color: Colors.black87),
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
+        child: Container(
+          width: MediaQuery.of(context).size.width,
+          padding: const EdgeInsets.all(16.0),
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          decoration: BoxDecoration(
+            color: entry.isError
+                ? Colors.red.shade50
+                : (entry.isProcessing ? Colors.grey.shade200 : Colors.white),
+            borderRadius: BorderRadius.circular(12.0),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4.0,
+                offset: Offset(0, 2),
               ),
             ],
-            const SizedBox(height: 4.0),
-            Text(
-              entry.createdAt.toLocal().toString().split(' ')[0],
-              style: const TextStyle(fontSize: 12.0, color: Colors.black54),
-            ),
-          ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Text(
+                audioFile.title, // Lấy title từ AudioFile
+                style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                  color: entry.isError
+                      ? Colors.red
+                      : (entry.isProcessing ? Colors.grey : Colors.black),
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (entry.isProcessing) ...[
+                const SizedBox(height: 8.0),
+                const LinearProgressIndicator(),
+              ] else if (entry.isError) ...[
+                const SizedBox(height: 4.0),
+                Text(
+                  entry.content ?? 'An error occurred.',
+                  style: const TextStyle(fontSize: 14.0, color: Colors.red),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ] else ...[
+                const SizedBox(height: 4.0),
+                Flexible(
+                  child: Text(
+                    entry.content ?? 'No transcription available.',
+                    style:
+                        const TextStyle(fontSize: 14.0, color: Colors.black87),
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 4.0),
+              Text(
+                entry.createdAt.toLocal().toString().split(' ')[0],
+                style: const TextStyle(fontSize: 12.0, color: Colors.black54),
+              ),
+            ],
+          ),
         ),
       ),
     );

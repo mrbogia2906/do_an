@@ -4,13 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:speech_to_text_app/components/base_view/base_view.dart';
 import 'package:speech_to_text_app/data/repositories/auth/auth_local_repository.dart';
+import 'package:speech_to_text_app/router/app_router.dart';
 
 import '../../data/models/api/responses/audio_file/audio_file.dart';
 import '../../data/services/audio_service/audio_service.dart';
 import '../main/main_state.dart';
+import 'audio_details_state.dart';
+import 'audio_details_view_model.dart';
+
+final audioDetailsViewModelProvider = StateNotifierProvider.family<
+    AudioDetailsViewModel, AudioDetailsState, TranscriptionEntry>(
+  (ref, entry) => AudioDetailsViewModel(ref: ref, transcriptionEntry: entry),
+);
 
 @RoutePage()
-class AudioDetailsScreen extends ConsumerWidget {
+class AudioDetailsScreen extends BaseView {
   final TranscriptionEntry entry;
   final AudioFile audioFile;
 
@@ -21,201 +29,220 @@ class AudioDetailsScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  BaseViewState<AudioDetailsScreen, AudioDetailsViewModel> createState() =>
+      _AudioDetailsScreenState();
+}
+
+class _AudioDetailsScreenState
+    extends BaseViewState<AudioDetailsScreen, AudioDetailsViewModel> {
+  @override
+  AudioDetailsViewModel get viewModel =>
+      ref.read(audioDetailsViewModelProvider(widget.entry).notifier);
+
+  @override
+  void onInitState() {
+    super.onInitState();
+    // Nếu cần thiết, khởi tạo dữ liệu tại đây
+  }
+
+  @override
+  PreferredSizeWidget? buildAppBar(BuildContext context) {
+    return AppBar(
+      title: const Text('Audio Details'),
+      centerTitle: true,
+    );
+  }
+
+  @override
+  Widget buildBody(BuildContext context) {
     final tokenFuture = ref.watch(authLocalRepositoryProvider).getToken();
-    bool isExpanded = false;
-    int selectedTabIndex = 0;
+
+    // Lấy trạng thái hiện tại từ ViewModel
+    final audioDetailsState =
+        ref.watch(audioDetailsViewModelProvider(widget.entry));
+    final todos = ref.watch(audioDetailsViewModelProvider(widget.entry)).todos;
+    print('Todos: $todos');
+
+    print(
+        'Words list: ${widget.entry.words}, transcriptionId: ${widget.entry.id}, audioFileId: ${widget.entry.audioFileId}');
+
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Audio Details'),
-          centerTitle: true,
-          // bottom: TabBar(
-          //   tabs: [
-          //     Tab(text: 'Summary'),
-          //     Tab(text: 'Recording'),
-          //   ],
-          // ),
-        ),
-        body: Consumer(
-          builder: (context, ref, child) {
-            return Column(
+      child: Column(
+        children: [
+          TabBar(
+            onTap: (index) {
+              viewModel.setSelectedTabIndex(index);
+            },
+            tabs: const [
+              Tab(text: 'Summary'),
+              Tab(text: 'Recording'),
+            ],
+          ),
+          Expanded(
+            child: IndexedStack(
+              index: audioDetailsState.selectedTabIndex,
               children: [
-                TabBar(
-                  onTap: (index) {
-                    selectedTabIndex = index; // Cập nhật tab hiện tại
-                    (context as Element)
-                        .markNeedsBuild(); // Yêu cầu xây dựng lại
-                  },
-                  tabs: const [
-                    Tab(text: 'Summary'),
-                    Tab(text: 'Recording'),
-                  ],
-                ),
-                Expanded(
-                  child: IndexedStack(
-                    index: selectedTabIndex,
-                    children: [
-                      SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // To-do Section
-                              Card(
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8)),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          const Text('To-do',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold)),
-                                          IconButton(
-                                            icon: Icon(
-                                              isExpanded
-                                                  ? Icons.expand_less
-                                                  : Icons.expand_more,
-                                              color: Colors.black,
-                                            ),
-                                            onPressed: () {
-                                              // Quản lý trạng thái mở rộng
-                                              isExpanded = !isExpanded;
-                                              // Cập nhật state nếu cần
-                                              (context as Element)
-                                                  .markNeedsBuild(); // Yêu cầu xây dựng lại
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Visibility(
-                                        visible: isExpanded,
-                                        child: ElevatedButton.icon(
-                                          onPressed: () {},
-                                          icon: const Icon(Icons.flash_on,
-                                              color: Color(0xFF8E4AD7)),
-                                          label: const Text(
-                                            'Create todo list',
-                                            style: TextStyle(
-                                                color: Color(0xFF8E4AD7)),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.white,
-                                            side: const BorderSide(
-                                                color: Color(0xFF8E4AD7)),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(25),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 12),
-                                            minimumSize:
-                                                const Size.fromHeight(50),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Summary Content
-                              Card(
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8)),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text('Summary',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold)),
-                                          Icon(Icons.edit,
-                                              color: Colors.black54),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      const Text(
-                                        'Summary of the Discussion',
+                SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // To-do Section
+                        Card(
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('To-do',
                                         style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold),
+                                            fontWeight: FontWeight.bold)),
+                                    IconButton(
+                                      icon: Icon(
+                                        audioDetailsState.isExpanded
+                                            ? Icons.expand_less
+                                            : Icons.expand_more,
+                                        color: Colors.black,
                                       ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        entry.content ?? '',
-                                        style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.black87),
+                                      onPressed: () {
+                                        viewModel.toggleExpanded();
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                if (todos.isNotEmpty)
+                                  for (final todo in todos) ...[
+                                    ListTile(
+                                      title: Text(todo.title),
+                                      subtitle: Text(todo.description ?? ''),
+                                    ),
+                                  ]
+                                else
+                                  const Text('No to-dos available.'),
+                                const SizedBox(height: 10),
+                                Visibility(
+                                  visible: audioDetailsState.isExpanded,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      viewModel.generateTodos();
+                                    },
+                                    icon: const Icon(Icons.flash_on,
+                                        color: Color(0xFF8E4AD7)),
+                                    label: const Text(
+                                      'Create todo list',
+                                      style:
+                                          TextStyle(color: Color(0xFF8E4AD7)),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      side: const BorderSide(
+                                          color: Color(0xFF8E4AD7)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(25),
                                       ),
-                                    ],
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 12),
+                                      minimumSize: const Size.fromHeight(50),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      FutureBuilder<String?>(
-                        future: tokenFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          } else if (snapshot.hasError) {
-                            return Center(
-                                child: Text('Error: ${snapshot.error}'));
-                          } else if (!snapshot.hasData ||
-                              snapshot.data == null) {
-                            return const Center(
-                                child: Text('Token not available'));
-                          } else {
-                            return RecordingTab(
-                                audioFile: audioFile, token: snapshot.data!);
-                          }
-                        },
-                      ),
-                    ],
+                        const SizedBox(height: 20),
+
+                        // Summary Content
+                        Card(
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Summary',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    Icon(Icons.edit, color: Colors.black54),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  'Summary of the Discussion',
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  widget.entry.content ?? '',
+                                  style: const TextStyle(
+                                      fontSize: 14, color: Colors.black87),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+                FutureBuilder<String?>(
+                  future: tokenFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data == null) {
+                      return const Center(child: Text('Token not available'));
+                    } else {
+                      return RecordingTab(
+                        audioFile: widget.audioFile,
+                        token: snapshot.data!,
+                        transcriptionEntry: widget.entry,
+                      );
+                    }
+                  },
+                ),
               ],
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  @override
+  String get screenName => AudioDetailsRoute.name;
 }
 
 // Recording Tab Widget
 class RecordingTab extends StatefulWidget {
   final AudioFile audioFile;
   final String token;
+  final TranscriptionEntry transcriptionEntry;
 
   const RecordingTab({
     super.key,
     required this.audioFile,
     required this.token,
+    required this.transcriptionEntry,
   });
 
   @override
@@ -228,6 +255,7 @@ class _RecordingTabState extends State<RecordingTab> {
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
   final AudioService _audioService = AudioService();
+  int _currentWordIndex = 0;
 
   @override
   void initState() {
@@ -251,6 +279,7 @@ class _RecordingTabState extends State<RecordingTab> {
         if (mounted) {
           setState(() {
             _position = position;
+            _updateCurrentWordIndex();
           });
         }
       });
@@ -273,6 +302,20 @@ class _RecordingTabState extends State<RecordingTab> {
     }
   }
 
+  void _updateCurrentWordIndex() {
+    final currentTime = _position.inMilliseconds;
+    final words = widget.transcriptionEntry.words;
+    if (words == null || words.isEmpty) return;
+    for (int i = 0; i < words.length; i++) {
+      final wordStart = (words[i].startTime * 1000).toInt();
+      final wordEnd = (words[i].endTime * 1000).toInt();
+      if (currentTime >= wordStart && currentTime <= wordEnd) {
+        _currentWordIndex = i;
+        break;
+      }
+    }
+  }
+
   @override
   void dispose() {
     _audioPlayer.dispose();
@@ -288,7 +331,7 @@ class _RecordingTabState extends State<RecordingTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,7 +400,46 @@ class _RecordingTabState extends State<RecordingTab> {
             'Uploaded At: ${widget.audioFile.uploadedAt.toLocal().toString().split(' ')[0]}',
             style: const TextStyle(fontSize: 14),
           ),
+          const SizedBox(height: 20),
+          Text(
+            'Transcription',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          _buildHighlightedTranscription(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightedTranscription() {
+    final words = widget.transcriptionEntry.words;
+    List<TextSpan> wordSpans = [];
+    if (words == null || words.isEmpty) {
+      // Fallback to displaying plain transcription text
+      return Text(
+        widget.transcriptionEntry.content ?? '',
+        style: const TextStyle(fontSize: 16),
+      );
+    }
+    print('words.length = ${words.length}');
+    for (int i = 0; i < words.length; i++) {
+      final isCurrentWord = i == _currentWordIndex;
+      wordSpans.add(
+        TextSpan(
+          text: '${words[i].word} ',
+          style: TextStyle(
+            color: isCurrentWord ? Colors.blue : Colors.black,
+            backgroundColor: isCurrentWord ? Colors.yellow : Colors.transparent,
+          ),
+        ),
+      );
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 16),
+        children: wordSpans,
       ),
     );
   }

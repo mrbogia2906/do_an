@@ -19,6 +19,9 @@ mixin _$AudioDetailsState {
   bool get loading => throw _privateConstructorUsedError;
   List<TranscriptionEntry> get transcriptionHistory =>
       throw _privateConstructorUsedError;
+  List<Todo> get todos => throw _privateConstructorUsedError;
+  bool get isExpanded => throw _privateConstructorUsedError;
+  int get selectedTabIndex => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $AudioDetailsStateCopyWith<AudioDetailsState> get copyWith =>
@@ -31,7 +34,12 @@ abstract class $AudioDetailsStateCopyWith<$Res> {
           AudioDetailsState value, $Res Function(AudioDetailsState) then) =
       _$AudioDetailsStateCopyWithImpl<$Res, AudioDetailsState>;
   @useResult
-  $Res call({bool loading, List<TranscriptionEntry> transcriptionHistory});
+  $Res call(
+      {bool loading,
+      List<TranscriptionEntry> transcriptionHistory,
+      List<Todo> todos,
+      bool isExpanded,
+      int selectedTabIndex});
 }
 
 /// @nodoc
@@ -49,6 +57,9 @@ class _$AudioDetailsStateCopyWithImpl<$Res, $Val extends AudioDetailsState>
   $Res call({
     Object? loading = null,
     Object? transcriptionHistory = null,
+    Object? todos = null,
+    Object? isExpanded = null,
+    Object? selectedTabIndex = null,
   }) {
     return _then(_value.copyWith(
       loading: null == loading
@@ -59,6 +70,18 @@ class _$AudioDetailsStateCopyWithImpl<$Res, $Val extends AudioDetailsState>
           ? _value.transcriptionHistory
           : transcriptionHistory // ignore: cast_nullable_to_non_nullable
               as List<TranscriptionEntry>,
+      todos: null == todos
+          ? _value.todos
+          : todos // ignore: cast_nullable_to_non_nullable
+              as List<Todo>,
+      isExpanded: null == isExpanded
+          ? _value.isExpanded
+          : isExpanded // ignore: cast_nullable_to_non_nullable
+              as bool,
+      selectedTabIndex: null == selectedTabIndex
+          ? _value.selectedTabIndex
+          : selectedTabIndex // ignore: cast_nullable_to_non_nullable
+              as int,
     ) as $Val);
   }
 }
@@ -71,7 +94,12 @@ abstract class _$$AudioDetailsStateImplCopyWith<$Res>
       __$$AudioDetailsStateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({bool loading, List<TranscriptionEntry> transcriptionHistory});
+  $Res call(
+      {bool loading,
+      List<TranscriptionEntry> transcriptionHistory,
+      List<Todo> todos,
+      bool isExpanded,
+      int selectedTabIndex});
 }
 
 /// @nodoc
@@ -87,6 +115,9 @@ class __$$AudioDetailsStateImplCopyWithImpl<$Res>
   $Res call({
     Object? loading = null,
     Object? transcriptionHistory = null,
+    Object? todos = null,
+    Object? isExpanded = null,
+    Object? selectedTabIndex = null,
   }) {
     return _then(_$AudioDetailsStateImpl(
       loading: null == loading
@@ -97,6 +128,18 @@ class __$$AudioDetailsStateImplCopyWithImpl<$Res>
           ? _value._transcriptionHistory
           : transcriptionHistory // ignore: cast_nullable_to_non_nullable
               as List<TranscriptionEntry>,
+      todos: null == todos
+          ? _value._todos
+          : todos // ignore: cast_nullable_to_non_nullable
+              as List<Todo>,
+      isExpanded: null == isExpanded
+          ? _value.isExpanded
+          : isExpanded // ignore: cast_nullable_to_non_nullable
+              as bool,
+      selectedTabIndex: null == selectedTabIndex
+          ? _value.selectedTabIndex
+          : selectedTabIndex // ignore: cast_nullable_to_non_nullable
+              as int,
     ));
   }
 }
@@ -106,8 +149,12 @@ class __$$AudioDetailsStateImplCopyWithImpl<$Res>
 class _$AudioDetailsStateImpl extends _AudioDetailsState {
   _$AudioDetailsStateImpl(
       {this.loading = true,
-      final List<TranscriptionEntry> transcriptionHistory = const []})
+      final List<TranscriptionEntry> transcriptionHistory = const [],
+      final List<Todo> todos = const [],
+      this.isExpanded = false,
+      this.selectedTabIndex = 0})
       : _transcriptionHistory = transcriptionHistory,
+        _todos = todos,
         super._();
 
   @override
@@ -123,9 +170,25 @@ class _$AudioDetailsStateImpl extends _AudioDetailsState {
     return EqualUnmodifiableListView(_transcriptionHistory);
   }
 
+  final List<Todo> _todos;
+  @override
+  @JsonKey()
+  List<Todo> get todos {
+    if (_todos is EqualUnmodifiableListView) return _todos;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_todos);
+  }
+
+  @override
+  @JsonKey()
+  final bool isExpanded;
+  @override
+  @JsonKey()
+  final int selectedTabIndex;
+
   @override
   String toString() {
-    return 'AudioDetailsState(loading: $loading, transcriptionHistory: $transcriptionHistory)';
+    return 'AudioDetailsState(loading: $loading, transcriptionHistory: $transcriptionHistory, todos: $todos, isExpanded: $isExpanded, selectedTabIndex: $selectedTabIndex)';
   }
 
   @override
@@ -135,12 +198,22 @@ class _$AudioDetailsStateImpl extends _AudioDetailsState {
             other is _$AudioDetailsStateImpl &&
             (identical(other.loading, loading) || other.loading == loading) &&
             const DeepCollectionEquality()
-                .equals(other._transcriptionHistory, _transcriptionHistory));
+                .equals(other._transcriptionHistory, _transcriptionHistory) &&
+            const DeepCollectionEquality().equals(other._todos, _todos) &&
+            (identical(other.isExpanded, isExpanded) ||
+                other.isExpanded == isExpanded) &&
+            (identical(other.selectedTabIndex, selectedTabIndex) ||
+                other.selectedTabIndex == selectedTabIndex));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, loading,
-      const DeepCollectionEquality().hash(_transcriptionHistory));
+  int get hashCode => Object.hash(
+      runtimeType,
+      loading,
+      const DeepCollectionEquality().hash(_transcriptionHistory),
+      const DeepCollectionEquality().hash(_todos),
+      isExpanded,
+      selectedTabIndex);
 
   @JsonKey(ignore: true)
   @override
@@ -152,15 +225,23 @@ class _$AudioDetailsStateImpl extends _AudioDetailsState {
 
 abstract class _AudioDetailsState extends AudioDetailsState {
   factory _AudioDetailsState(
-          {final bool loading,
-          final List<TranscriptionEntry> transcriptionHistory}) =
-      _$AudioDetailsStateImpl;
+      {final bool loading,
+      final List<TranscriptionEntry> transcriptionHistory,
+      final List<Todo> todos,
+      final bool isExpanded,
+      final int selectedTabIndex}) = _$AudioDetailsStateImpl;
   _AudioDetailsState._() : super._();
 
   @override
   bool get loading;
   @override
   List<TranscriptionEntry> get transcriptionHistory;
+  @override
+  List<Todo> get todos;
+  @override
+  bool get isExpanded;
+  @override
+  int get selectedTabIndex;
   @override
   @JsonKey(ignore: true)
   _$$AudioDetailsStateImplCopyWith<_$AudioDetailsStateImpl> get copyWith =>

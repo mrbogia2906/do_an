@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text_app/screen/main/main_state.dart';
 import 'package:speech_to_text_app/screen/main/main_view_model.dart';
+import 'package:audio_waveforms/audio_waveforms.dart';
 
 import '../../components/base_view/base_view.dart';
 import '../../router/app_router.dart';
@@ -160,11 +161,15 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
                   RecordingState.recording) ...[
                 const Text('Recording...', style: TextStyle(fontSize: 16)),
                 const SizedBox(height: 10),
-                Container(
-                  height: 100,
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Text('Waveform here'),
+                // Waveform Widget
+                AudioWaveforms(
+                  enableGesture: false, // Disable gestures if not needed
+                  size: const Size(double.infinity, 100),
+                  recorderController: viewModel.recorderController,
+                  waveStyle: const WaveStyle(
+                    waveColor: Colors.blue,
+                    extendWaveform: true,
+                    showMiddleLine: false,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -191,11 +196,15 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
                   RecordingState.paused) ...[
                 const Text('Paused', style: TextStyle(fontSize: 16)),
                 const SizedBox(height: 10),
-                Container(
-                  height: 100,
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Text('Waveform here'),
+                // Waveform Widget (can display a static waveform or the same as recording)
+                AudioWaveforms(
+                  enableGesture: false,
+                  size: const Size(double.infinity, 100),
+                  recorderController: viewModel.recorderController,
+                  waveStyle: const WaveStyle(
+                    waveColor: Colors.blue,
+                    extendWaveform: true,
+                    showMiddleLine: false,
                   ),
                 ),
                 const SizedBox(height: 20),

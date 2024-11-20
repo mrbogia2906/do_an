@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../../screen/main/main_state.dart';
 import '../../../utilities/constants/server_constants.dart';
 import '../../models/api/responses/audio_file/audio_file.dart';
+import '../../models/api/responses/todo/todo.dart';
 
 class AudioService {
   final String baseUrl = "${ServerConstant.serverURL}/api";
@@ -122,6 +123,91 @@ class AudioService {
       final responseBody = response.body;
       throw Exception(
           'Failed to delete AudioFile: ${response.statusCode} - $responseBody');
+    }
+  }
+
+  Future<void> generateTodos(String transcriptionId, String token) async {
+    final uri = Uri.parse('$baseUrl/generate-todos/$transcriptionId');
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to generate to-dos: ${response.body}');
+    }
+  }
+
+  Future<List<Todo>> getTodos(String transcriptionId, String token) async {
+    final uri = Uri.parse('$baseUrl/transcriptions/$transcriptionId/todos');
+    final response = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+      return (jsonResponse as List)
+          .map<Todo>((json) => Todo.fromJson(json))
+          .toList();
+    } else {
+      throw Exception('Failed to fetch to-dos: ${response.body}');
+    }
+  }
+
+  Future<AudioFile> updateAudioFileTitle(
+      String audioId, String newTitle, String token) async {
+    final uri = Uri.parse('$baseUrl/audio-files/$audioId/title');
+    final response = await http.patch(
+      uri,
+      headers: {
+        "Content-Type": "application/json",
+        "x-auth-token": token,
+      },
+      body: json.encode({
+        "title": newTitle,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // Cập nhật thành công, trả về AudioFile đã được cập nhật
+      final decodedBody = json.decode(utf8.decode(response.bodyBytes));
+      return AudioFile.fromJson(decodedBody);
+    } else {
+      final responseBody = response.body;
+      throw Exception(
+          'Failed to update AudioFile title: ${response.statusCode} - $responseBody');
+    }
+  }
+
+  Future<TranscriptionEntry> uploadAudioWithGoogleSTT(
+      File audioFile, String title, String token) async {
+    final uri = Uri.parse('$baseUrl/transcribe-google');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['x-auth-token'] = token
+      ..fields['title'] = title
+      ..files.add(await http.MultipartFile.fromPath(
+        'audio',
+        audioFile.path,
+        filename: audioFile.uri.pathSegments.last, // Use original file name
+      ));
+
+    final streamedResponse = await request.send();
+
+    if (streamedResponse.statusCode == 201) {
+      final responseBody = await streamedResponse.stream.bytesToString();
+      final jsonResponse = json.decode(responseBody);
+      return TranscriptionEntry.fromJson(jsonResponse);
+    } else {
+      final responseBody = await streamedResponse.stream.bytesToString();
+      throw Exception(
+          'Failed to upload audio: ${streamedResponse.statusCode} - $responseBody');
     }
   }
 }

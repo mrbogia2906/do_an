@@ -9,6 +9,7 @@ import traceback
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from models.transcription import Transcription
 from models.audio_file import AudioFile
+from models.todo import Todo
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from uuid import uuid4
@@ -16,7 +17,10 @@ import mimetypes
 from datetime import timedelta
 from google.cloud import storage
 import mimetypes
-import os
+import json
+from google.cloud import storage
+import logging
+
 
 # Tải các biến môi trường từ .env
 load_dotenv()
@@ -35,7 +39,11 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Tạo hàng đợi
 queue = asyncio.Queue()
 
-from google.cloud import storage
+todo_queue = asyncio.Queue()
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def cors_configuration(bucket_name):
     """Set a bucket's CORS policies configuration."""
@@ -56,9 +64,6 @@ def cors_configuration(bucket_name):
 
 # Gọi hàm để thiết lập CORS
 cors_configuration("audio_stt_kltn")
-
-
-
 
 async def upload_to_gcs(file_path: str, destination_blob_name: str) -> str:
     try:
@@ -178,7 +183,85 @@ async def process_queue():
             db.close()
             queue.task_done()
 
+async def process_todo_queue():
+    while True:
+        transcription_id, future = await todo_queue.get()
+        try:
+            logger.info(f"Processing to-do generation for transcription_id: {transcription_id}")
+
+            # Initialize DB session
+            db: Session = SessionLocal()
+
+            # Get the Transcription record
+            transcription = db.query(Transcription).filter(Transcription.id == transcription_id).first()
+            if not transcription:
+                raise Exception(f"Transcription with id {transcription_id} not found.")
+
+            # Use the transcription content to generate to-dos
+            prompt = (
+                "Please read the following transcription and extract any actionable items or to-dos mentioned. "
+                "Return only the to-do items as a JSON array in the following format, without any additional text or explanations:\n"
+                "[\n  { \"title\": \"Example Task\", \"description\": \"Description of the task.\" },\n  ...\n]\n\n"
+                "Transcription:\n\n"
+                f"{transcription.content}"
+            )
+
+            logger.info(f"Prompt: {prompt}")
+
+            # Use the AI model to generate the to-dos
+            model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+            response = model.generate_content(prompt)
+
+            # Log the response
+            logger.info(f"AI Model Response: '{response.text}'")
+
+            cleaned_response = response.text.strip()
+            if cleaned_response.startswith("```json") and cleaned_response.endswith("```"):
+                cleaned_response = cleaned_response[len("```json"): -len("```")].strip()
+
+            if not cleaned_response:
+                raise ValueError("AI model returned an empty response.")
+
+            # Parse the response to extract to-dos
+            try:
+                todos_list = json.loads(cleaned_response)
+                logger.info(f"Parsed todos: {todos_list}")
+            except json.JSONDecodeError as jde:
+                logger.error(f"JSON decode error: {jde}")
+                logger.error(f"Invalid JSON response: '{cleaned_response}'")
+                raise ValueError("AI model returned invalid JSON.")
+
+            # Kiểm tra định dạng của todos_list
+            if not isinstance(todos_list, list):
+                raise ValueError("AI model response is not a JSON array.")
+
+            # Tạo Todo records
+            for todo_data in todos_list:
+                if 'title' not in todo_data:
+                    raise ValueError("Missing 'title' in to-do item.")
+                todo = Todo(
+                    transcription_id=transcription.id,
+                    title=todo_data['title'],
+                    description=todo_data.get('description', '')
+                )
+                db.add(todo)
+
+            db.commit()
+
+            # Set the result for the future
+            future.set_result({"detail": "To-dos generated successfully."})
+
+            logger.info(f"To-dos generated successfully for transcription_id: {transcription_id}")
+
+        except Exception as e:
+            logger.error("Error during to-do generation:", exc_info=True)
+            future.set_exception(Exception("Error during to-do generation"))
+        finally:
+            db.close()
+            todo_queue.task_done()
+
 # Function để khởi chạy background task
 def start_background_tasks():
     loop = asyncio.get_event_loop()
     loop.create_task(process_queue())
+    loop.create_task(process_todo_queue())

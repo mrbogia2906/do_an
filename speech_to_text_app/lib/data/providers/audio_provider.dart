@@ -30,6 +30,15 @@ class AudioFilesNotifier extends StateNotifier<List<AudioFile>> {
     print('AudioFilesProvider - Added: ${audioFile.id} - ${audioFile.title}');
   }
 
+  void updateAudioFile(AudioFile updatedAudioFile) {
+    state = state.map((audio) {
+      if (audio.id == updatedAudioFile.id) {
+        return updatedAudioFile;
+      }
+      return audio;
+    }).toList();
+  }
+
   void removeAudioFile(String audioFileId) {
     state = state.where((audio) => audio.id != audioFileId).toList();
     print('AudioFilesProvider - Removed: $audioFileId');

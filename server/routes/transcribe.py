@@ -4,11 +4,12 @@ import asyncio
 import aiofiles
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form, Depends, logger
 from fastapi.responses import JSONResponse
-from background import UPLOAD_DIR, queue, process_queue
+from background import UPLOAD_DIR, queue, process_queue, todo_queue
 from middleware.auth_middleware import auth_middleware
 from sqlalchemy.orm import Session
 from models.audio_file import AudioFile
 from models.transcription import Transcription
+from models.todo import Todo
 from database import get_db
 from uuid import uuid4
 from datetime import datetime, timedelta
@@ -16,8 +17,12 @@ from typing import List
 from background import upload_to_gcs
 import logging
 from google.cloud import storage
+from google.cloud import speech
+
 
 from pydantic_schemas.audio_file import AudioFileResponse, AudioFileUpdateTitle
+from pydantic_schemas.transcription import TranscriptionResponse
+from pydantic_schemas.todo import TodoResponse
 
 
 logger = logging.getLogger(__name__)
@@ -105,7 +110,12 @@ async def upload_audio(
 def get_audio_files(db: Session = Depends(get_db), user_dict = Depends(auth_middleware)):
     try:
         user_id = user_dict['uid']
-        audio_files = db.query(AudioFile).filter(AudioFile.user_id == user_id).all()
+        audio_files = (
+            db.query(AudioFile)
+            .filter(AudioFile.user_id == user_id)
+            .order_by(AudioFile.uploaded_at.desc())
+            .all()
+        )
         return JSONResponse(
             status_code=200,
             content=[
@@ -125,7 +135,7 @@ def get_audio_files(db: Session = Depends(get_db), user_dict = Depends(auth_midd
         logger.error("Error fetching audio files:", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/transcriptions/{transcription_id}", response_model=dict)
+@router.get("/transcriptions/{transcription_id}", response_model=TranscriptionResponse)
 def get_transcription(
     transcription_id: str,
     db: Session = Depends(get_db),
@@ -141,23 +151,11 @@ def get_transcription(
         if not transcription:
             raise HTTPException(status_code=404, detail="Transcription not found")
 
-        logger.info(f"Returning transcription content: {transcription.content}")
-
-        return JSONResponse(
-            status_code=200,
-            content={
-                "id": transcription.id,
-                "audio_file_id": transcription.audio_file_id,
-                "content": transcription.content,
-                "created_at": transcription.created_at.isoformat(),
-                "is_processing": transcription.is_processing,
-                "is_error": transcription.is_error
-            },
-            media_type="application/json; charset=utf-8"
-        )
+        return transcription  
     except Exception as e:
         logger.error("Error fetching transcription:", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/gg-transcribe")
 async def transcribe(audio: UploadFile = File(...)):
@@ -362,3 +360,176 @@ def update_audio_file_title(
         raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate-todos/{transcription_id}")
+async def generate_todos(
+    transcription_id: str,
+    db: Session = Depends(get_db),
+    user_dict=Depends(auth_middleware)
+):
+    try:
+        user_id = user_dict['uid']
+        # Verify that the transcription exists and belongs to the user
+        transcription = db.query(Transcription).join(AudioFile).filter(
+            Transcription.id == transcription_id,
+            AudioFile.user_id == user_id
+        ).first()
+
+        if not transcription:
+            raise HTTPException(status_code=404, detail="Transcription not found")
+
+        # Enqueue the transcription_id for to-do generation
+        future = asyncio.get_event_loop().create_future()
+        await todo_queue.put((transcription_id, future))
+
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "To-do generation enqueued."}
+        )
+
+    except Exception as e:
+        logger.error("Error during to-do generation enqueue:", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/transcriptions/{transcription_id}/todos", response_model=List[TodoResponse])
+def get_todos(
+    transcription_id: str,
+    db: Session = Depends(get_db),
+    user_dict=Depends(auth_middleware)
+):
+    try:
+        user_id = user_dict['uid']
+        transcription = db.query(Transcription).join(AudioFile).filter(
+            Transcription.id == transcription_id,
+            AudioFile.user_id == user_id
+        ).first()
+
+        if not transcription:
+            raise HTTPException(status_code=404, detail="Transcription not found")
+
+        todos = db.query(Todo).filter(Todo.transcription_id == transcription_id).all()
+
+        return todos
+
+    except Exception as e:
+        logger.error("Error fetching to-dos:", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/transcribe-google", status_code=201)
+async def transcribe_google(
+    audio: UploadFile = File(...),
+    title: str = Form(...),
+    db: Session = Depends(get_db),
+    user_dict=Depends(auth_middleware)
+):
+    try:
+        user_id = user_dict['uid']
+        
+        # Generate IDs for AudioFile and Transcription
+        audio_id = str(uuid4())
+        transcription_id = str(uuid4())
+        filename = f"{audio_id}_{audio.filename}"
+        file_location = os.path.join(UPLOAD_DIR, filename)
+
+        # Save the uploaded audio file
+        async with aiofiles.open(file_location, "wb") as buffer:
+            while True:
+                chunk = await audio.read(1024 * 1024)  # Read in 1MB chunks
+                if not chunk:
+                    break
+                await buffer.write(chunk)
+        
+        # Upload audio to Google Cloud Storage
+        file_url = await upload_to_gcs(file_location, filename)
+
+        # Create AudioFile record in the database
+        audio_file = AudioFile(
+            id=audio_id,
+            user_id=user_id,
+            title=title,
+            blob_name=filename,
+            file_url=file_url,
+            uploaded_at=datetime.utcnow(),
+        )
+        db.add(audio_file)
+        db.commit()
+        db.refresh(audio_file)
+
+        # Create Transcription record
+        transcription = Transcription(
+            id=transcription_id,
+            audio_file_id=audio_file.id,
+            is_processing=True
+        )
+        db.add(transcription)
+        db.commit()
+        db.refresh(transcription)
+
+        # Call the transcription function directly
+        transcribe_gcs_with_word_time_offsets(file_url, transcription, db)
+
+        # Remove local file after processing
+        os.remove(file_location)
+
+        # Return the transcription result
+        return JSONResponse(
+            status_code=201,
+            content={
+                "id": transcription.id,
+                "audio_file_id": transcription.audio_file_id,
+                "content": transcription.content,
+                "word_timings": transcription.word_timings,
+                "created_at": transcription.created_at.isoformat(),
+                "is_processing": transcription.is_processing,
+                "is_error": transcription.is_error
+            },
+            media_type="application/json; charset=utf-8"
+        )
+
+    except Exception as e:
+        logger.error("Error during Google transcription:", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def transcribe_gcs_with_word_time_offsets(audio_uri: str, transcription: Transcription, db: Session):
+    client = speech.SpeechClient()
+
+    audio = speech.RecognitionAudio(uri=audio_uri)
+    config = speech.RecognitionConfig(
+        # Adjust encoding and sample rate as needed
+        # Ensure encoding matches your audio file format
+        encoding=speech.RecognitionConfig.AudioEncoding.FLAC,
+        sample_rate_hertz=16000,  # Adjust based on your audio sample rate
+        language_code="en-US",
+        enable_word_time_offsets=True,
+    )
+
+    operation = client.long_running_recognize(config=config, audio=audio)
+
+    print("Waiting for operation to complete...")
+    result = operation.result(timeout=300)  # Adjust timeout as needed
+
+    # Process the results to extract word time offsets
+    transcription_text = ""
+    word_timings = []
+    for res in result.results:
+        alternative = res.alternatives[0]
+        transcription_text += alternative.transcript
+        for word_info in alternative.words:
+            word = word_info.word
+            start_time = word_info.start_time.total_seconds()
+            end_time = word_info.end_time.total_seconds()
+            word_timings.append({
+                'word': word,
+                'start_time': start_time,
+                'end_time': end_time,
+            })
+
+    # Update the Transcription object
+    transcription.content = transcription_text
+    transcription.word_timings = word_timings  # Assuming JSON field
+    transcription.is_processing = False
+    transcription.is_error = False
+
+    db.commit()

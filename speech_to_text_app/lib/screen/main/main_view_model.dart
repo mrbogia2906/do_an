@@ -21,7 +21,10 @@ import '../../utilities/global.dart';
 import 'main_state.dart';
 
 class MainViewModel extends BaseViewModel<MainState> {
-  MainViewModel({required this.ref}) : super(const MainState());
+  MainViewModel({
+    required this.ref,
+    required this.authViewModel,
+  }) : super(const MainState());
   // {
   //   _init();
   //   // fetchAudioFiles(); // Fetch existing audio files when ViewModel is initialized
@@ -29,6 +32,7 @@ class MainViewModel extends BaseViewModel<MainState> {
 
   final Ref ref;
   final AudioService _audioService = AudioService();
+  AuthViewModel authViewModel;
   // FlutterSoundRecorder? _audioRecorder;
 
   final RecorderController recorderController = RecorderController();
@@ -282,6 +286,7 @@ class MainViewModel extends BaseViewModel<MainState> {
           uploadedAudio.id,
           uploadedAudio.transcriptionId!,
         );
+        authViewModel.getCurrentUserData();
 
         // Thêm audioFile vào audioFilesProvider
         ref.read(audioFilesProvider.notifier).addAudioFile(uploadedAudio);
@@ -426,6 +431,8 @@ class MainViewModel extends BaseViewModel<MainState> {
           );
 
           // Đóng bottom sheet nếu cần
+          authViewModel.getCurrentUserData();
+
           Navigator.pop(context);
         } else {
           // Nếu không có transcriptionId, xử lý lỗi

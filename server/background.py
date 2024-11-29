@@ -199,7 +199,7 @@ async def process_todo_queue():
 
             # Use the transcription content to generate to-dos
             prompt = (
-                "Please read the following transcription and extract any actionable items or to-dos mentioned. "
+                "Please read the following transcription and extract any actionable items or to-dos mentioned. If the transcription language is what, return the title and description corresponding to that language. "
                 "Return only the to-do items as a JSON array in the following format, without any additional text or explanations:\n"
                 "[\n  { \"title\": \"Example Task\", \"description\": \"Description of the task.\" },\n  ...\n]\n\n"
                 "Transcription:\n\n"

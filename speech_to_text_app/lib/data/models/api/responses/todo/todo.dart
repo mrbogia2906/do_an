@@ -3,12 +3,14 @@ class Todo {
   final String transcriptionId;
   final String title;
   final String? description;
+  bool? isCompleted;
 
   Todo({
     required this.id,
     required this.transcriptionId,
     required this.title,
     this.description,
+    this.isCompleted,
   });
 
   factory Todo.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class Todo {
       transcriptionId: json['transcription_id'],
       title: json['title'],
       description: json['description'],
+      isCompleted: json['is_completed'] ?? false,
     );
   }
 }

@@ -17,6 +17,10 @@ class AudioDetailsViewModel extends BaseViewModel<AudioDetailsState> {
   final TranscriptionEntry transcriptionEntry;
   final AudioService _audioService = AudioService();
 
+  Future<void> initData() async {
+    await fetchTodos();
+  }
+
   Future<void> generateTodos() async {
     final token = await ref.read(authLocalRepositoryProvider).getToken();
     if (token == null) {
@@ -44,9 +48,16 @@ class AudioDetailsViewModel extends BaseViewModel<AudioDetailsState> {
     try {
       final todos = await _audioService.getTodos(transcriptionEntry.id, token);
       // Update the state with the fetched to-dos
+      print('Fetched todos: $todos');
+      if (todos.isEmpty) {
+        state = state.copyWith(isVisibleCreateTodoButton: true);
+      } else {
+        state = state.copyWith(isVisibleCreateTodoButton: false);
+      }
       state = state.copyWith(todos: todos);
     } catch (e) {
       // Handle error
+      print('Error fetching todos: $e, ${transcriptionEntry.id}');
     }
   }
 
@@ -56,5 +67,20 @@ class AudioDetailsViewModel extends BaseViewModel<AudioDetailsState> {
 
   void setSelectedTabIndex(int index) {
     state = state.copyWith(selectedTabIndex: index);
+  }
+
+  void toggleTodoCompletion(String id, bool bool) {}
+
+  Future<void> updateSummary(String newSummary) async {
+    try {
+      // Lưu nội dung summary mới vào API hoặc nơi bạn lưu trữ
+      // await ref.read(audioServiceProvider).updateTranscriptionSummary(
+      //     transcriptionEntry.id, newSummary);
+
+      // Cập nhật lại trạng thái
+      state = state.copyWith(loading: false); // Cập nhật lại UI
+    } catch (e) {
+      // Handle error
+    }
   }
 }

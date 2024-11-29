@@ -5,7 +5,11 @@ part 'upgrade_state.freezed.dart';
 @freezed
 class UpgradeState with _$UpgradeState {
   factory UpgradeState({
-    @Default(true) bool loading,
+    @Default(false) bool isLoading,
+    @Default('') String zpTransToken,
+    @Default('') String orderUrl,
+    @Default('') String payResult,
+    @Default(false) bool showResult,
   }) = _UpgradeState;
 
   const UpgradeState._();

@@ -33,9 +33,9 @@ class BottomTabBar extends StatelessWidget {
           ),
           Flexible(
             child: TabItem(
-              mainTab: MainTab.favorite,
-              isActive: tabsRouter.activeIndex == MainTab.favorite.index,
-              onTap: () => tabsRouter.setActiveIndex(MainTab.favorite.index),
+              mainTab: MainTab.todo,
+              isActive: tabsRouter.activeIndex == MainTab.todo.index,
+              onTap: () => tabsRouter.setActiveIndex(MainTab.todo.index),
             ),
           ),
           const SizedBox(width: 48), // Space for the FloatingActionButton
@@ -48,9 +48,9 @@ class BottomTabBar extends StatelessWidget {
           ),
           Flexible(
             child: TabItem(
-              mainTab: MainTab.setting,
-              isActive: tabsRouter.activeIndex == MainTab.setting.index,
-              onTap: () => tabsRouter.setActiveIndex(MainTab.setting.index),
+              mainTab: MainTab.account,
+              isActive: tabsRouter.activeIndex == MainTab.account.index,
+              onTap: () => tabsRouter.setActiveIndex(MainTab.account.index),
             ),
           ),
         ],

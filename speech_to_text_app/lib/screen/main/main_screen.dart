@@ -7,11 +7,15 @@ import 'package:speech_to_text_app/screen/main/main_view_model.dart';
 import 'package:audio_waveforms/audio_waveforms.dart';
 
 import '../../components/base_view/base_view.dart';
+import '../../data/view_model/auth_viewmodel.dart';
 import '../../router/app_router.dart';
 import 'components/bottom_tab_bar.dart';
 
 final mainProvider = StateNotifierProvider<MainViewModel, MainState>(
-  (ref) => MainViewModel(ref: ref),
+  (ref) => MainViewModel(
+    ref: ref,
+    authViewModel: ref.read(authViewModelProvider.notifier),
+  ),
 );
 
 @RoutePage()

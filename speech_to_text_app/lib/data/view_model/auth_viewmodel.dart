@@ -1,4 +1,5 @@
 // lib/features/auth/viewmodels/auth_viewmodel.dart
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../components/failure/failure.dart';
@@ -115,6 +116,87 @@ class AuthViewModel extends StateNotifier<AsyncValue<UserModel?>> {
           'An unexpected error occurred',
           StackTrace.current,
         );
+      }
+    }
+  }
+
+  // Phương thức đổi username
+  Future<void> changeUserName(String newUsername) async {
+    state = const AsyncValue.loading();
+    try {
+      final token = await _authLocalRepository.getToken();
+      if (token == null) {
+        throw AppFailure('No token found. Please log in.');
+      }
+      final user = await _authRemoteRepository.changeUserName(
+        name: newUsername,
+        token: token,
+      );
+      // Cập nhật trạng thái người dùng hiện tại
+      _currentUserNotifier.addUser(user);
+      // Cập nhật trạng thái
+      state = AsyncValue.data(user);
+    } catch (e) {
+      if (e is AppFailure) {
+        state = AsyncValue.error(e.message, StackTrace.current);
+      } else {
+        state = AsyncValue.error(
+            'An unexpected error occurred', StackTrace.current);
+      }
+    }
+  }
+
+  // Phương thức đổi mật khẩu
+  Future<void> changePassword(
+      String oldPassword, String newPassword, BuildContext context) async {
+    state = const AsyncValue.loading();
+    try {
+      final token = await _authLocalRepository.getToken();
+      if (token == null) {
+        throw AppFailure('No token found. Please log in.');
+      }
+      final user = await _authRemoteRepository.changeUserPassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+        token: token,
+      );
+      // Cập nhật trạng thái người dùng hiện tại
+      _currentUserNotifier.addUser(user);
+      // Cập nhật trạng thái
+      state = AsyncValue.data(user);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Success'),
+          content: Text('Password changed successfully.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (e is AppFailure) {
+        state = AsyncValue.error(e.message, StackTrace.current);
+        // Hiển thị thông báo lỗi mà không đóng bottom sheet
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Error'),
+            content: Text(e.message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        state = AsyncValue.error(
+            'An unexpected error occurred', StackTrace.current);
       }
     }
   }

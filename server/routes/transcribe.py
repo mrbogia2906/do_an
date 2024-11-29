@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from models.audio_file import AudioFile
 from models.transcription import Transcription
 from models.todo import Todo
+from models.user import User
 from database import get_db
 from uuid import uuid4
 from datetime import datetime, timedelta
@@ -18,16 +19,31 @@ from background import upload_to_gcs
 import logging
 from google.cloud import storage
 from google.cloud import speech
-
+from pydub import AudioSegment
+from pydub.utils import which
 
 from pydantic_schemas.audio_file import AudioFileResponse, AudioFileUpdateTitle
 from pydantic_schemas.transcription import TranscriptionResponse
 from pydantic_schemas.todo import TodoResponse
-
+from tinytag import TinyTag
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+AudioSegment.converter = which("ffmpeg")  
+AudioSegment.ffprobe = which("ffprobe") 
+
+
+
+def get_audio_duration(file_path: str) -> int:
+    try:
+        tag = TinyTag.get(file_path)
+        return int(tag.duration)  # Duration in seconds
+    except Exception as e:
+        logger.error(f"Error calculating duration for {file_path}: {e}")
+        raise HTTPException(status_code=500, detail="Error calculating audio duration")
+
 
 @router.post("/upload-audio", status_code=201)
 async def upload_audio(
@@ -38,6 +54,16 @@ async def upload_audio(
 ):
     try:
         user_id = user_dict['uid']
+        
+        # Lấy thông tin người dùng
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Kiểm tra số lượng file hiện tại
+        current_file_count = len(user.audio_files)
+        if current_file_count >= user.max_audio_files:
+            raise HTTPException(status_code=400, detail="You have reached the maximum number of audio files.")
         
         # Tạo ID cho AudioFile và Transcription
         audio_id = str(uuid4())
@@ -53,8 +79,16 @@ async def upload_audio(
                     break
                 await buffer.write(chunk)
         
-        logger.info(f"Audio file saved at {file_location}")  # Debugging
+        # Lấy duration của file audio
+        duration_seconds = get_audio_duration(file_location)
 
+        # Kiểm tra tổng thời gian audio
+        total_audio_time = user.total_audio_time
+        if total_audio_time + duration_seconds > user.max_total_audio_time:
+            # Xóa file đã lưu nếu vượt quá giới hạn
+            os.remove(file_location)
+            raise HTTPException(status_code=400, detail="Total audio time exceeds the maximum allowed.")
+        
         # Upload audio lên Google Cloud Storage và lấy Signed URL
         file_url = await upload_to_gcs(file_location, filename)
 
@@ -66,8 +100,13 @@ async def upload_audio(
             blob_name=filename,
             file_url=file_url,
             uploaded_at=datetime.utcnow(),
+            duration=duration_seconds  # Lưu duration tính bằng phút
         )
         db.add(audio_file)
+        
+        # Cập nhật tổng thời gian audio của người dùng
+        user.total_audio_time += duration_seconds
+
         db.commit()
         db.refresh(audio_file)
 
@@ -85,18 +124,18 @@ async def upload_audio(
         future = asyncio.get_event_loop().create_future()
         await queue.put((file_location, transcription.id, future))
 
-        logger.info(f"Enqueued transcription task for {file_location}")  # Debugging
-
         # Trả về response với thông tin AudioFile và Transcription
         return JSONResponse(
             status_code=201,
             content={
                 "id": audio_file.id,
                 "title": audio_file.title,
-                "file_url": audio_file.file_url,  # Đây là Signed URL
+                "file_url": audio_file.file_url,  
                 "uploaded_at": audio_file.uploaded_at.isoformat(),
                 "transcription_id": transcription.id,
-                "is_processing": transcription.is_processing
+                "is_processing": transcription.is_processing,
+                "total_audio_time": user.total_audio_time,  # Trả về tổng thời gian audio
+                "max_total_audio_time": user.max_total_audio_time
             },
             media_type="application/json; charset=utf-8"
         )

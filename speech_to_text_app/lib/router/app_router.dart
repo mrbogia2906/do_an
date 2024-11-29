@@ -9,6 +9,7 @@ import '../screen/login/login_screen.dart';
 import '../screen/main/main_screen.dart';
 import '../screen/main/main_state.dart';
 import '../screen/register/register_screen.dart';
+import '../screen/search/search_screen.dart';
 import '../screen/splash/splash_screen.dart';
 import '../screen/todo/todo_screen.dart';
 import '../screen/upgrade/upgrade_screen.dart';
@@ -81,6 +82,16 @@ class AppRouter extends _$AppRouter {
         AutoRoute(
           page: AudioDetailsRoute.page,
           path: '/entry',
+        ),
+        AutoRoute(
+          page: SearchRoute.page,
+          path: '/search',
+          children: [
+            AutoRoute(
+              page: SearchRoute.page,
+              path: '',
+            ),
+          ],
         ),
       ];
 }

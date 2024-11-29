@@ -21,6 +21,7 @@ mixin _$AudioDetailsState {
       throw _privateConstructorUsedError;
   List<Todo> get todos => throw _privateConstructorUsedError;
   bool get isExpanded => throw _privateConstructorUsedError;
+  bool get isVisibleCreateTodoButton => throw _privateConstructorUsedError;
   int get selectedTabIndex => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
@@ -39,6 +40,7 @@ abstract class $AudioDetailsStateCopyWith<$Res> {
       List<TranscriptionEntry> transcriptionHistory,
       List<Todo> todos,
       bool isExpanded,
+      bool isVisibleCreateTodoButton,
       int selectedTabIndex});
 }
 
@@ -59,6 +61,7 @@ class _$AudioDetailsStateCopyWithImpl<$Res, $Val extends AudioDetailsState>
     Object? transcriptionHistory = null,
     Object? todos = null,
     Object? isExpanded = null,
+    Object? isVisibleCreateTodoButton = null,
     Object? selectedTabIndex = null,
   }) {
     return _then(_value.copyWith(
@@ -77,6 +80,10 @@ class _$AudioDetailsStateCopyWithImpl<$Res, $Val extends AudioDetailsState>
       isExpanded: null == isExpanded
           ? _value.isExpanded
           : isExpanded // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isVisibleCreateTodoButton: null == isVisibleCreateTodoButton
+          ? _value.isVisibleCreateTodoButton
+          : isVisibleCreateTodoButton // ignore: cast_nullable_to_non_nullable
               as bool,
       selectedTabIndex: null == selectedTabIndex
           ? _value.selectedTabIndex
@@ -99,6 +106,7 @@ abstract class _$$AudioDetailsStateImplCopyWith<$Res>
       List<TranscriptionEntry> transcriptionHistory,
       List<Todo> todos,
       bool isExpanded,
+      bool isVisibleCreateTodoButton,
       int selectedTabIndex});
 }
 
@@ -117,6 +125,7 @@ class __$$AudioDetailsStateImplCopyWithImpl<$Res>
     Object? transcriptionHistory = null,
     Object? todos = null,
     Object? isExpanded = null,
+    Object? isVisibleCreateTodoButton = null,
     Object? selectedTabIndex = null,
   }) {
     return _then(_$AudioDetailsStateImpl(
@@ -136,6 +145,10 @@ class __$$AudioDetailsStateImplCopyWithImpl<$Res>
           ? _value.isExpanded
           : isExpanded // ignore: cast_nullable_to_non_nullable
               as bool,
+      isVisibleCreateTodoButton: null == isVisibleCreateTodoButton
+          ? _value.isVisibleCreateTodoButton
+          : isVisibleCreateTodoButton // ignore: cast_nullable_to_non_nullable
+              as bool,
       selectedTabIndex: null == selectedTabIndex
           ? _value.selectedTabIndex
           : selectedTabIndex // ignore: cast_nullable_to_non_nullable
@@ -151,7 +164,8 @@ class _$AudioDetailsStateImpl extends _AudioDetailsState {
       {this.loading = true,
       final List<TranscriptionEntry> transcriptionHistory = const [],
       final List<Todo> todos = const [],
-      this.isExpanded = false,
+      this.isExpanded = true,
+      this.isVisibleCreateTodoButton = true,
       this.selectedTabIndex = 0})
       : _transcriptionHistory = transcriptionHistory,
         _todos = todos,
@@ -184,11 +198,14 @@ class _$AudioDetailsStateImpl extends _AudioDetailsState {
   final bool isExpanded;
   @override
   @JsonKey()
+  final bool isVisibleCreateTodoButton;
+  @override
+  @JsonKey()
   final int selectedTabIndex;
 
   @override
   String toString() {
-    return 'AudioDetailsState(loading: $loading, transcriptionHistory: $transcriptionHistory, todos: $todos, isExpanded: $isExpanded, selectedTabIndex: $selectedTabIndex)';
+    return 'AudioDetailsState(loading: $loading, transcriptionHistory: $transcriptionHistory, todos: $todos, isExpanded: $isExpanded, isVisibleCreateTodoButton: $isVisibleCreateTodoButton, selectedTabIndex: $selectedTabIndex)';
   }
 
   @override
@@ -202,6 +219,9 @@ class _$AudioDetailsStateImpl extends _AudioDetailsState {
             const DeepCollectionEquality().equals(other._todos, _todos) &&
             (identical(other.isExpanded, isExpanded) ||
                 other.isExpanded == isExpanded) &&
+            (identical(other.isVisibleCreateTodoButton,
+                    isVisibleCreateTodoButton) ||
+                other.isVisibleCreateTodoButton == isVisibleCreateTodoButton) &&
             (identical(other.selectedTabIndex, selectedTabIndex) ||
                 other.selectedTabIndex == selectedTabIndex));
   }
@@ -213,6 +233,7 @@ class _$AudioDetailsStateImpl extends _AudioDetailsState {
       const DeepCollectionEquality().hash(_transcriptionHistory),
       const DeepCollectionEquality().hash(_todos),
       isExpanded,
+      isVisibleCreateTodoButton,
       selectedTabIndex);
 
   @JsonKey(ignore: true)
@@ -229,6 +250,7 @@ abstract class _AudioDetailsState extends AudioDetailsState {
       final List<TranscriptionEntry> transcriptionHistory,
       final List<Todo> todos,
       final bool isExpanded,
+      final bool isVisibleCreateTodoButton,
       final int selectedTabIndex}) = _$AudioDetailsStateImpl;
   _AudioDetailsState._() : super._();
 
@@ -240,6 +262,8 @@ abstract class _AudioDetailsState extends AudioDetailsState {
   List<Todo> get todos;
   @override
   bool get isExpanded;
+  @override
+  bool get isVisibleCreateTodoButton;
   @override
   int get selectedTabIndex;
   @override

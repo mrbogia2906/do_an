@@ -94,7 +94,7 @@ class _SplashViewState extends BaseViewState<SplashScreen, SplashViewModel> {
     // });
 
     return Center(
-      child: Assets.images.logoFacebook.image(
+      child: Assets.images.logo2.image(
         width: 120,
         height: 120,
         fit: BoxFit.contain,

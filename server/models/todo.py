@@ -11,5 +11,6 @@ class Todo(Base):
     transcription_id = Column(String, ForeignKey('transcriptions.id'), nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
+    is_completed = Column(String, nullable=False, default='false')
 
     transcription = relationship("Transcription", back_populates="todos")

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from models.user import User
 from pydantic_schemas.user_create import UserCreate
 from pydantic_schemas.user_login import UserLogin
-from pydantic_schemas.user import UserSchema  # Import schema
+from pydantic_schemas.user import UserSchema, UpdateUsernameRequest, UpdatePasswordRequest
 import jwt
 
 from middleware.auth_middleware import auth_middleware
@@ -28,7 +28,10 @@ def signup_user(user: UserCreate, db: Session = Depends(get_db)):
         id=str(uuid.uuid4()),
         email=user.email,
         password=hashed_pw.decode(),  # Đảm bảo mật khẩu là string
-        name=user.name
+        name=user.name,
+        is_premium=False,
+        max_audio_files=10,
+        max_total_audio_time=18000
     )
 
     # Thêm người dùng vào cơ sở dữ liệu
@@ -71,3 +74,55 @@ def current_user_data(db: Session = Depends(get_db), user_dict=Depends(auth_midd
         raise HTTPException(404, 'User not found!')
 
     return UserSchema.from_orm(user)  # Sử dụng Pydantic schema
+
+@router.put('/change-name', response_model=UserSchema)
+def change_name(request: UpdateUsernameRequest, db: Session = Depends(get_db), user_dict=Depends(auth_middleware)):
+    user = db.query(User).filter(User.id == user_dict['uid']).first()
+
+    if not user:
+        raise HTTPException(404, 'User not found!')
+
+    user.name = request.new_username  
+    db.commit()
+    db.refresh(user)
+
+    return UserSchema.from_orm(user)
+
+
+@router.put('/change-password', response_model=UserSchema)
+def change_password(request: UpdatePasswordRequest, db: Session = Depends(get_db), user_dict=Depends(auth_middleware)):
+    user = db.query(User).filter(User.id == user_dict['uid']).first()
+
+    if not user:
+        raise HTTPException(404, 'User not found!')
+
+    if isinstance(user.password, memoryview):
+        hashed_password = user.password.tobytes()
+    elif isinstance(user.password, str):
+        hashed_password = user.password.encode()
+    else:
+        hashed_password = user.password
+
+    is_match = bcrypt.checkpw(request.old_password.encode(), hashed_password)
+
+    if not is_match:
+        raise HTTPException(400, 'Incorrect old password!')
+
+    hashed_new_pw = bcrypt.hashpw(request.new_password.encode(), bcrypt.gensalt())
+    user.password = hashed_new_pw.decode()
+    db.commit()
+    db.refresh(user)
+
+    return UserSchema.from_orm(user)
+
+@router.delete('/delete-account', response_model=dict)
+def delete_account(db: Session = Depends(get_db), user_dict=Depends(auth_middleware)):
+    user = db.query(User).filter(User.id == user_dict['uid']).first()
+
+    if not user:
+        raise HTTPException(404, 'User not found!')
+
+    db.delete(user)
+    db.commit()
+
+    return {'message': 'Account deleted successfully'}

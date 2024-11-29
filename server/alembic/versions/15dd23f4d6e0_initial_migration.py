@@ -1,18 +1,18 @@
 """Initial migration
 
-Revision ID: 445103ccef3d
+Revision ID: 15dd23f4d6e0
 Revises: 
-Create Date: 2024-11-18 21:50:32.386255
+Create Date: 2024-11-26 01:42:44.554280
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '445103ccef3d'
+revision: str = '15dd23f4d6e0'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,6 +25,9 @@ def upgrade() -> None:
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('password', sa.String(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
+    sa.Column('is_premium', sa.Boolean(), nullable=True),
+    sa.Column('max_audio_files', sa.Integer(), nullable=True),
+    sa.Column('max_total_audio_time', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
@@ -36,6 +39,7 @@ def upgrade() -> None:
     sa.Column('blob_name', sa.String(), nullable=True),
     sa.Column('file_url', sa.String(), nullable=False),
     sa.Column('uploaded_at', sa.DateTime(), nullable=True),
+    sa.Column('duration', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -48,6 +52,7 @@ def upgrade() -> None:
     sa.Column('is_processing', sa.Boolean(), nullable=True),
     sa.Column('is_error', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('word_timings', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.ForeignKeyConstraint(['audio_file_id'], ['audio_files.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('audio_file_id')

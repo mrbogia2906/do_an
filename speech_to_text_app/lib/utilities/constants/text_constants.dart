@@ -5,6 +5,8 @@ class TextConstants {
   static const signIn = 'Sign In';
   static const signUp = 'Sign Up';
   static const logOut = 'Log Out';
+  static const account = 'Account';
+  static const todo = 'Todo';
   static const name = 'Name';
   static const email = 'Email';
   static const password = 'Password';

@@ -11,7 +11,8 @@ class AudioDetailsState with _$AudioDetailsState {
     @Default(true) bool loading,
     @Default([]) List<TranscriptionEntry> transcriptionHistory,
     @Default([]) List<Todo> todos,
-    @Default(false) bool isExpanded,
+    @Default(true) bool isExpanded,
+    @Default(true) bool isVisibleCreateTodoButton,
     @Default(0) int selectedTabIndex,
   }) = _AudioDetailsState;
 

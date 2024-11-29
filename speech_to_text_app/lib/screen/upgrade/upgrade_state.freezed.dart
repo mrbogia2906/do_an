@@ -16,7 +16,11 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$UpgradeState {
-  bool get loading => throw _privateConstructorUsedError;
+  bool get isLoading => throw _privateConstructorUsedError;
+  String get zpTransToken => throw _privateConstructorUsedError;
+  String get orderUrl => throw _privateConstructorUsedError;
+  String get payResult => throw _privateConstructorUsedError;
+  bool get showResult => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $UpgradeStateCopyWith<UpgradeState> get copyWith =>
@@ -29,7 +33,12 @@ abstract class $UpgradeStateCopyWith<$Res> {
           UpgradeState value, $Res Function(UpgradeState) then) =
       _$UpgradeStateCopyWithImpl<$Res, UpgradeState>;
   @useResult
-  $Res call({bool loading});
+  $Res call(
+      {bool isLoading,
+      String zpTransToken,
+      String orderUrl,
+      String payResult,
+      bool showResult});
 }
 
 /// @nodoc
@@ -45,12 +54,32 @@ class _$UpgradeStateCopyWithImpl<$Res, $Val extends UpgradeState>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? loading = null,
+    Object? isLoading = null,
+    Object? zpTransToken = null,
+    Object? orderUrl = null,
+    Object? payResult = null,
+    Object? showResult = null,
   }) {
     return _then(_value.copyWith(
-      loading: null == loading
-          ? _value.loading
-          : loading // ignore: cast_nullable_to_non_nullable
+      isLoading: null == isLoading
+          ? _value.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      zpTransToken: null == zpTransToken
+          ? _value.zpTransToken
+          : zpTransToken // ignore: cast_nullable_to_non_nullable
+              as String,
+      orderUrl: null == orderUrl
+          ? _value.orderUrl
+          : orderUrl // ignore: cast_nullable_to_non_nullable
+              as String,
+      payResult: null == payResult
+          ? _value.payResult
+          : payResult // ignore: cast_nullable_to_non_nullable
+              as String,
+      showResult: null == showResult
+          ? _value.showResult
+          : showResult // ignore: cast_nullable_to_non_nullable
               as bool,
     ) as $Val);
   }
@@ -64,7 +93,12 @@ abstract class _$$UpgradeStateImplCopyWith<$Res>
       __$$UpgradeStateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({bool loading});
+  $Res call(
+      {bool isLoading,
+      String zpTransToken,
+      String orderUrl,
+      String payResult,
+      bool showResult});
 }
 
 /// @nodoc
@@ -78,12 +112,32 @@ class __$$UpgradeStateImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? loading = null,
+    Object? isLoading = null,
+    Object? zpTransToken = null,
+    Object? orderUrl = null,
+    Object? payResult = null,
+    Object? showResult = null,
   }) {
     return _then(_$UpgradeStateImpl(
-      loading: null == loading
-          ? _value.loading
-          : loading // ignore: cast_nullable_to_non_nullable
+      isLoading: null == isLoading
+          ? _value.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      zpTransToken: null == zpTransToken
+          ? _value.zpTransToken
+          : zpTransToken // ignore: cast_nullable_to_non_nullable
+              as String,
+      orderUrl: null == orderUrl
+          ? _value.orderUrl
+          : orderUrl // ignore: cast_nullable_to_non_nullable
+              as String,
+      payResult: null == payResult
+          ? _value.payResult
+          : payResult // ignore: cast_nullable_to_non_nullable
+              as String,
+      showResult: null == showResult
+          ? _value.showResult
+          : showResult // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }
@@ -92,15 +146,33 @@ class __$$UpgradeStateImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$UpgradeStateImpl extends _UpgradeState {
-  _$UpgradeStateImpl({this.loading = true}) : super._();
+  _$UpgradeStateImpl(
+      {this.isLoading = false,
+      this.zpTransToken = '',
+      this.orderUrl = '',
+      this.payResult = '',
+      this.showResult = false})
+      : super._();
 
   @override
   @JsonKey()
-  final bool loading;
+  final bool isLoading;
+  @override
+  @JsonKey()
+  final String zpTransToken;
+  @override
+  @JsonKey()
+  final String orderUrl;
+  @override
+  @JsonKey()
+  final String payResult;
+  @override
+  @JsonKey()
+  final bool showResult;
 
   @override
   String toString() {
-    return 'UpgradeState(loading: $loading)';
+    return 'UpgradeState(isLoading: $isLoading, zpTransToken: $zpTransToken, orderUrl: $orderUrl, payResult: $payResult, showResult: $showResult)';
   }
 
   @override
@@ -108,11 +180,21 @@ class _$UpgradeStateImpl extends _UpgradeState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$UpgradeStateImpl &&
-            (identical(other.loading, loading) || other.loading == loading));
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
+            (identical(other.zpTransToken, zpTransToken) ||
+                other.zpTransToken == zpTransToken) &&
+            (identical(other.orderUrl, orderUrl) ||
+                other.orderUrl == orderUrl) &&
+            (identical(other.payResult, payResult) ||
+                other.payResult == payResult) &&
+            (identical(other.showResult, showResult) ||
+                other.showResult == showResult));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, loading);
+  int get hashCode => Object.hash(
+      runtimeType, isLoading, zpTransToken, orderUrl, payResult, showResult);
 
   @JsonKey(ignore: true)
   @override
@@ -122,11 +204,24 @@ class _$UpgradeStateImpl extends _UpgradeState {
 }
 
 abstract class _UpgradeState extends UpgradeState {
-  factory _UpgradeState({final bool loading}) = _$UpgradeStateImpl;
+  factory _UpgradeState(
+      {final bool isLoading,
+      final String zpTransToken,
+      final String orderUrl,
+      final String payResult,
+      final bool showResult}) = _$UpgradeStateImpl;
   _UpgradeState._() : super._();
 
   @override
-  bool get loading;
+  bool get isLoading;
+  @override
+  String get zpTransToken;
+  @override
+  String get orderUrl;
+  @override
+  String get payResult;
+  @override
+  bool get showResult;
   @override
   @JsonKey(ignore: true)
   _$$UpgradeStateImplCopyWith<_$UpgradeStateImpl> get copyWith =>

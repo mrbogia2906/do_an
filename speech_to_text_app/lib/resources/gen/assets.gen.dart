@@ -70,6 +70,9 @@ class $AssetsIconsGen {
   /// File path: assets/icons/home.svg
   SvgGenImage get home => const SvgGenImage('assets/icons/home.svg');
 
+  /// File path: assets/icons/home1.svg
+  SvgGenImage get home1 => const SvgGenImage('assets/icons/home1.svg');
+
   /// File path: assets/icons/home_on.svg
   SvgGenImage get homeOn => const SvgGenImage('assets/icons/home_on.svg');
 
@@ -138,6 +141,9 @@ class $AssetsIconsGen {
   SvgGenImage get smilingFace =>
       const SvgGenImage('assets/icons/smiling-face.svg');
 
+  /// File path: assets/icons/todo.svg
+  SvgGenImage get todo => const SvgGenImage('assets/icons/todo.svg');
+
   /// File path: assets/icons/video.svg
   SvgGenImage get video => const SvgGenImage('assets/icons/video.svg');
 
@@ -156,6 +162,7 @@ class $AssetsIconsGen {
         favoriteOn,
         haha,
         home,
+        home1,
         homeOn,
         like,
         likeOutline,
@@ -177,6 +184,7 @@ class $AssetsIconsGen {
         setting,
         share,
         smilingFace,
+        todo,
         video,
         videoOn,
         wow
@@ -194,8 +202,20 @@ class $AssetsImagesGen {
   AssetGenImage get logoFacebook =>
       const AssetGenImage('assets/images/logo-facebook.png');
 
+  /// File path: assets/images/logo2.png
+  AssetGenImage get logo2 => const AssetGenImage('assets/images/logo2.png');
+
+  /// File path: assets/images/logo_app.png
+  AssetGenImage get logoApp =>
+      const AssetGenImage('assets/images/logo_app.png');
+
+  /// File path: assets/images/speech-to-text.png
+  AssetGenImage get speechToText =>
+      const AssetGenImage('assets/images/speech-to-text.png');
+
   /// List of all assets
-  List<AssetGenImage> get values => [avatarDefault, logoFacebook];
+  List<AssetGenImage> get values =>
+      [avatarDefault, logoFacebook, logo2, logoApp, speechToText];
 }
 
 class Assets {

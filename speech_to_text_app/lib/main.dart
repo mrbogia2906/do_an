@@ -8,9 +8,7 @@ import 'utilities/global.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Khởi tạo ProviderContainer
   final container = ProviderContainer();
-  // Khởi tạo SharedPreferences và lấy dữ liệu người dùng
   await container.read(authViewModelProvider.notifier).initSharedPreferences();
   await container.read(authViewModelProvider.notifier).getData();
 

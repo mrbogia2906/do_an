@@ -49,6 +49,29 @@ class _HomeViewState extends BaseViewState<HomeScreen, HomeViewModel> {
     print(
         'transcriptionHistoryHome: ${transcriptionHistory.length}, audioFiles: ${audioFiles.length}');
 
+    // // Sắp xếp transcriptionHistory theo createdAt giảm dần
+    // List<TranscriptionEntry> sortedTranscriptions =
+    //     List.from(transcriptionHistory);
+    // sortedTranscriptions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    // Nhóm các transcription theo ngày
+    Map<String, List<TranscriptionEntry>> groupedTranscriptions = {};
+    for (var entry in transcriptionHistory) {
+      String dateKey = _formatDate(entry.createdAt);
+      if (groupedTranscriptions.containsKey(dateKey)) {
+        groupedTranscriptions[dateKey]!.add(entry);
+      } else {
+        groupedTranscriptions[dateKey] = [entry];
+      }
+    }
+
+    // Chuyển đổi groupedTranscriptions thành một danh sách kết hợp giữa headers và items
+    List<dynamic> combinedList = [];
+    groupedTranscriptions.forEach((date, entries) {
+      combinedList.add(date); // Thêm tiêu đề ngày
+      combinedList.addAll(entries); // Thêm các transcription của ngày đó
+    });
+
     return ContainerWithLoading(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
@@ -61,53 +84,64 @@ class _HomeViewState extends BaseViewState<HomeScreen, HomeViewModel> {
               const SizedBox(height: 24.0),
               const SearchBarWidget(),
               const SizedBox(height: 24.0),
-              transcriptionHistory.isNotEmpty
+              combinedList.isNotEmpty
                   ? ListView.builder(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
-                      itemCount: transcriptionHistory.length,
+                      itemCount: combinedList.length,
                       itemBuilder: (context, index) {
-                        final entry = transcriptionHistory[index];
-                        final audioFile = audioFiles.firstWhere(
-                          (audio) => audio.id == entry.audioFileId,
-                          orElse: () => AudioFile(
-                            id: 'unknown',
-                            title: 'Processing...',
-                            fileUrl: '',
-                            uploadedAt: DateTime.now(),
-                            transcriptionId: null,
-                            isProcessing: false,
-                          ),
-                        );
+                        final item = combinedList[index];
+                        if (item is String) {
+                          // Đây là tiêu đề ngày
+                          return ListSectionHeader(title: item);
+                        } else if (item is TranscriptionEntry) {
+                          final entry = item;
+                          final audioFile = audioFiles.firstWhere(
+                            (audio) => audio.id == entry.audioFileId,
+                            orElse: () => AudioFile(
+                              id: 'unknown',
+                              title: 'Processing...',
+                              fileUrl: '',
+                              uploadedAt: DateTime.now(),
+                              transcriptionId: null,
+                              isProcessing: false,
+                            ),
+                          );
 
-                        print(
-                            'Displaying entry: ${entry.id} - ${entry.content} - isProcessing: ${entry.isProcessing}');
+                          print(
+                              'Displaying entry: ${entry.id} - ${entry.content} - isProcessing: ${entry.isProcessing}');
 
-                        return GestureDetector(
-                          onTap: () {
-                            if (!entry.isProcessing && !entry.isError) {
-                              context.router.push(AudioDetailsRoute(
-                                entry: entry,
-                                audioFile: audioFile, // Truyền thêm AudioFile
-                              ));
-                            }
-                          },
-                          child: RecordingTile(
-                            entry: entry,
-                            audioFile: audioFile, // Truyền thêm AudioFile
-                          ),
-                        );
+                          return GestureDetector(
+                            onTap: () {
+                              if (!entry.isProcessing && !entry.isError) {
+                                context.router.push(AudioDetailsRoute(
+                                  entry: entry,
+                                  audioFile: audioFile,
+                                ));
+                              }
+                            },
+                            child: RecordingTile(
+                              entry: entry,
+                              audioFile: audioFile,
+                            ),
+                          );
+                        } else {
+                          return SizedBox.shrink();
+                        }
                       },
                     )
                   : const Center(
                       child: Text('No recordings yet'),
                     ),
-              // Bạn có thể thêm thêm các widget khác ở đây nếu cần
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.day}/${date.month}/${date.year}";
   }
 
   @override
@@ -261,10 +295,8 @@ class RecordingTile extends ConsumerWidget {
                       );
                     });
                 if (newTitle != null && newTitle.trim().isNotEmpty) {
-                  // Gọi phương thức cập nhật title
                   await viewModel.updateAudioFileTitle(
                       audioFile, newTitle.trim());
-                  // Không sử dụng SnackBar để tránh lỗi
                 }
               },
               backgroundColor: Colors.transparent,
@@ -293,28 +325,26 @@ class RecordingTile extends ConsumerWidget {
             ),
             CustomSlidableAction(
               onPressed: (context) async {
-                // Hiển thị hộp thoại xác nhận trước khi xoá
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Xoá AudioFile'),
+                    title: const Text('Delete Transcription'),
                     content: const Text(
-                        'Bạn có chắc chắn muốn xoá AudioFile này và bản transcription liên quan?'),
+                        'Do you want to delete this recording? This action cannot be undone.'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('Không'),
+                        child: const Text('No'),
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('Có'),
+                        child: const Text('Yes'),
                       ),
                     ],
                   ),
                 );
 
                 if (confirm == true) {
-                  // Gọi phương thức xoá AudioFile và Transcription
                   await viewModel.deleteAudioFile(audioFile);
                 }
               },
@@ -325,8 +355,7 @@ class RecordingTile extends ConsumerWidget {
               child: Container(
                 height: 164,
                 width: MediaQuery.of(context).size.width / 2,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20), // Đặt chiều cao tùy chỉnh
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
                   color: Colors.red,
                   borderRadius: BorderRadius.circular(12.0),
@@ -367,7 +396,7 @@ class RecordingTile extends ConsumerWidget {
             mainAxisSize: MainAxisSize.max,
             children: [
               Text(
-                audioFile.title, // Lấy title từ AudioFile
+                audioFile.title,
                 style: TextStyle(
                   fontSize: 16.0,
                   fontWeight: FontWeight.bold,
@@ -421,14 +450,15 @@ class ListSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 16.0,
+          fontSize: 18.0,
           fontWeight: FontWeight.bold,
-          color: Colors.black54,
+          color: Colors.black87,
         ),
       ),
     );

@@ -21,7 +21,7 @@ class AudioService {
       ..files.add(await http.MultipartFile.fromPath(
         'audio',
         audioFile.path,
-        filename: audioFile.uri.pathSegments.last, // Sử dụng tên tệp gốc
+        filename: audioFile.uri.pathSegments.last,
       ));
 
     final streamedResponse = await request.send();
@@ -32,8 +32,7 @@ class AudioService {
       return AudioFile.fromJson(jsonResponse);
     } else {
       final responseBody = await streamedResponse.stream.bytesToString();
-      throw Exception(
-          'Failed to upload audio: ${streamedResponse.statusCode} - $responseBody');
+      throw Exception('Failed to upload audio:  $responseBody');
     }
   }
 
@@ -117,7 +116,6 @@ class AudioService {
     );
 
     if (response.statusCode == 200) {
-      // Xoá thành công
       print('AudioFile and Transcription deleted successfully.');
     } else {
       final responseBody = response.body;
@@ -152,8 +150,8 @@ class AudioService {
     );
 
     if (response.statusCode == 200) {
-      final jsonResponse = json.decode(response.body);
-      return (jsonResponse as List)
+      final decodedBody = json.decode(utf8.decode(response.bodyBytes));
+      return (decodedBody as List)
           .map<Todo>((json) => Todo.fromJson(json))
           .toList();
     } else {
@@ -176,7 +174,6 @@ class AudioService {
     );
 
     if (response.statusCode == 200) {
-      // Cập nhật thành công, trả về AudioFile đã được cập nhật
       final decodedBody = json.decode(utf8.decode(response.bodyBytes));
       return AudioFile.fromJson(decodedBody);
     } else {
@@ -195,7 +192,7 @@ class AudioService {
       ..files.add(await http.MultipartFile.fromPath(
         'audio',
         audioFile.path,
-        filename: audioFile.uri.pathSegments.last, // Use original file name
+        filename: audioFile.uri.pathSegments.last,
       ));
 
     final streamedResponse = await request.send();

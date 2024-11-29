@@ -6,6 +6,8 @@ part 'account_state.freezed.dart';
 class AccountState with _$AccountState {
   factory AccountState({
     @Default(true) bool loading,
+    @Default('') String name,
+    @Default('') String password,
   }) = _AccountState;
 
   const AccountState._();

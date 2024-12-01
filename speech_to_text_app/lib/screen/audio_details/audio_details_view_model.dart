@@ -11,11 +11,13 @@ class AudioDetailsViewModel extends BaseViewModel<AudioDetailsState> {
   AudioDetailsViewModel({
     required this.ref,
     required this.transcriptionEntry,
+    required this.authLocalRepository,
   }) : super(AudioDetailsState());
 
   final Ref ref;
   final TranscriptionEntry transcriptionEntry;
   final AudioService _audioService = AudioService();
+  final AuthLocalRepository authLocalRepository;
 
   Future<void> initData() async {
     await fetchTodos();
@@ -69,7 +71,58 @@ class AudioDetailsViewModel extends BaseViewModel<AudioDetailsState> {
     state = state.copyWith(selectedTabIndex: index);
   }
 
-  void toggleTodoCompletion(String id, bool bool) {}
+  Future<void> toggleTodoCompletion(String id, bool status) async {
+    final token = await ref.read(authLocalRepositoryProvider).getToken();
+    if (token == null) {
+      return;
+    }
+
+    try {
+      await _audioService.updateTodoStatus(id, status, token);
+      await fetchTodos();
+    } catch (e) {
+      // Handle error
+      print('Error updating todo status: $e');
+    }
+  }
+
+  Future<void> addNewTodo(String title, String description) async {
+    final token = await ref.read(authLocalRepositoryProvider).getToken();
+    if (token == null) {
+      return;
+    }
+
+    try {
+      await _audioService.createTodo(
+        transcriptionEntry.id,
+        title,
+        description,
+        token,
+      );
+      await fetchTodos();
+      print('Added new todo');
+    } catch (e) {
+      // Handle error
+      print('Error creating todo: $e');
+    }
+  }
+
+  Future<void> updateTodoDetail(
+      String id, String newTitle, String newDescription) async {
+    final token = await ref.read(authLocalRepositoryProvider).getToken();
+    if (token == null) {
+      return;
+    }
+
+    try {
+      await _audioService.updateTodoDetail(id, newTitle, newDescription, token);
+      await fetchTodos();
+      print('Updated todo detail');
+    } catch (e) {
+      // Handle error
+      print('Error updating todo detail: $e');
+    }
+  }
 
   Future<void> updateSummary(String newSummary) async {
     try {

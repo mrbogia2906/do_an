@@ -75,6 +75,7 @@ dependencies:
   flutter_audio_waveforms: ^1.2.1+8
   audio_waveforms: ^1.1.1
   crypto: ^3.0.6
+  diacritic: ^0.1.6
 
 dev_dependencies:
   flutter_test:

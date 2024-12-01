@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:speech_to_text_app/components/base_view/base_view.dart';
 import 'package:speech_to_text_app/components/loading/container_with_loading.dart';
+import 'package:speech_to_text_app/data/providers_gen/current_user_notifier.dart';
 import 'package:speech_to_text_app/data/repositories/auth/auth_local_repository.dart';
 import 'package:speech_to_text_app/router/app_router.dart';
 
 import '../../data/models/api/responses/audio_file/audio_file.dart';
+import '../../data/models/api/responses/todo/todo.dart';
 import '../../data/services/audio_service/audio_service.dart';
 import '../main/main_state.dart';
 import 'audio_details_state.dart';
@@ -15,7 +17,10 @@ import 'audio_details_view_model.dart';
 
 final audioDetailsViewModelProvider = StateNotifierProvider.family<
     AudioDetailsViewModel, AudioDetailsState, TranscriptionEntry>(
-  (ref, entry) => AudioDetailsViewModel(ref: ref, transcriptionEntry: entry),
+  (ref, entry) => AudioDetailsViewModel(
+      ref: ref,
+      transcriptionEntry: entry,
+      authLocalRepository: ref.read(authLocalRepositoryProvider)),
 );
 
 @RoutePage()
@@ -38,6 +43,7 @@ class _AudioDetailsScreenState
     extends BaseViewState<AudioDetailsScreen, AudioDetailsViewModel> {
   TextEditingController _summaryController = TextEditingController();
   bool _isEditingSummary = false;
+  bool _showCompletedTodos = false;
   bool _isUpdating = false;
   @override
   AudioDetailsViewModel get viewModel =>
@@ -62,7 +68,8 @@ class _AudioDetailsScreenState
 
   @override
   Widget buildBody(BuildContext context) {
-    final tokenFuture = ref.watch(authLocalRepositoryProvider).getToken();
+    // final tokenFuture = ref.watch(authLocalRepositoryProvider).getToken();
+    final token = ref.read(currentUserNotifierProvider)!.token;
     int currentTabIndex = 0;
 
     // Lấy trạng thái hiện tại từ ViewModel
@@ -113,7 +120,7 @@ class _AudioDetailsScreenState
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                          'To-do ${todos.isNotEmpty ? '(${todos.length})' : ''}',
+                                          'Todo ${todos.isNotEmpty ? '(${todos.length})' : ''}',
                                           style: const TextStyle(
                                               fontWeight: FontWeight.bold)),
                                       IconButton(
@@ -129,13 +136,41 @@ class _AudioDetailsScreenState
                                       ),
                                     ],
                                   ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text('Show completed todos',
+                                          style: TextStyle(fontSize: 12)),
+                                      Transform.scale(
+                                        scale: 0.55,
+                                        child: Switch(
+                                          value: _showCompletedTodos,
+                                          onChanged: (bool value) {
+                                            setState(() {
+                                              _showCompletedTodos = value;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                   Visibility(
                                     visible: audioDetailsState.isExpanded,
                                     child: Column(
                                       children: [
                                         if (todos.isNotEmpty)
-                                          for (final todo in todos) ...[
+                                          for (final todo
+                                              in todos.where((todo) {
+                                            if (_showCompletedTodos) {
+                                              return todo.isCompleted == true;
+                                            } else {
+                                              return todo.isCompleted == false;
+                                            }
+                                          })) ...[
                                             ListTile(
+                                              contentPadding:
+                                                  EdgeInsets.symmetric(
+                                                      horizontal: 2.0),
                                               leading: Checkbox(
                                                 value: todo.isCompleted,
                                                 onChanged: (bool? value) {
@@ -157,6 +192,10 @@ class _AudioDetailsScreenState
                                               ),
                                               subtitle:
                                                   Text(todo.description ?? ''),
+                                              onTap: () {
+                                                _showEditTodoDialog(
+                                                    context, todo);
+                                              },
                                             ),
                                           ]
                                         else
@@ -194,6 +233,31 @@ class _AudioDetailsScreenState
                                         padding: const EdgeInsets.symmetric(
                                             vertical: 12),
                                         minimumSize: const Size.fromHeight(50),
+                                      ),
+                                    ),
+                                  ),
+                                  Visibility(
+                                    visible: todos.isNotEmpty &&
+                                        audioDetailsState.isExpanded,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 64.0),
+                                      child: TextButton(
+                                        onPressed: () {
+                                          _showAddTodoDialog(context);
+                                        },
+                                        child: const Row(
+                                          children: [
+                                            Icon(Icons.add,
+                                                color: Colors.blue, size: 20),
+                                            Text(
+                                              'Add New To-Do',
+                                              style: TextStyle(
+                                                  color: Colors.blue,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -292,23 +356,10 @@ class _AudioDetailsScreenState
                       ),
                     ),
                   ),
-                  FutureBuilder<String?>(
-                    future: tokenFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      } else if (!snapshot.hasData || snapshot.data == null) {
-                        return const Center(child: Text('Token not available'));
-                      } else {
-                        return RecordingTab(
-                          audioFile: widget.audioFile,
-                          token: snapshot.data!,
-                          transcriptionEntry: widget.entry,
-                        );
-                      }
-                    },
+                  RecordingTab(
+                    audioFile: widget.audioFile,
+                    token: token,
+                    transcriptionEntry: widget.entry,
                   ),
                 ],
               ),
@@ -318,6 +369,185 @@ class _AudioDetailsScreenState
       ),
     );
   }
+
+  void _showAddTodoDialog(BuildContext context) {
+    TextEditingController titleController = TextEditingController();
+    TextEditingController descriptionController = TextEditingController();
+
+    final _formKey1 = GlobalKey<FormState>(); // Tạo GlobalKey để quản lý form
+
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add New To-Do'),
+          content: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxHeight: 400,
+              ),
+              child: Form(
+                key: _formKey1,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Title'),
+                    TextFormField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Title cannot be empty';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 5),
+                    const Text('Description'),
+                    TextFormField(
+                      controller: descriptionController,
+                      maxLines: null, // Allow for multiple lines
+                      minLines: 3, // Minimum 3 lines
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton(
+                    onPressed: () async {
+                      // Only proceed if the form is valid
+                      if (_formKey1.currentState!.validate()) {
+                        final title = titleController.text.trim();
+                        final description = descriptionController.text.trim();
+
+                        // Call the function to add the To-Do
+                        await viewModel.addNewTodo(title, description);
+                        Navigator.pop(context); // Close the dialog
+                      }
+                    },
+                    child: const Text('Add'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close the dialog without saving
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditTodoDialog(BuildContext context, Todo todo) {
+    TextEditingController titleController =
+        TextEditingController(text: todo.title);
+    TextEditingController descriptionController =
+        TextEditingController(text: todo.description);
+
+    final _formKey = GlobalKey<FormState>();
+
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Todo'),
+          content: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxHeight: 400,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Title'),
+                    TextFormField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Title cannot be empty';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 5),
+                    const Text('Description'),
+                    TextFormField(
+                      controller: descriptionController,
+                      maxLines: null,
+                      minLines: 3,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton(
+                    onPressed: () async {
+                      if (_formKey.currentState!.validate()) {
+                        String title =
+                            titleController.text.replaceAll('\n', ' ').trim();
+                        String description = descriptionController.text
+                            .replaceAll('\n', ' ')
+                            .trim();
+
+                        await viewModel.updateTodoDetail(
+                            todo.id, title, description);
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: const Text('Save'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  bool get tapOutsideToDismissKeyBoard => true;
 
   @override
   String get screenName => AudioDetailsRoute.name;
@@ -508,7 +738,7 @@ class _RecordingTabState extends State<RecordingTab> {
             style: const TextStyle(fontSize: 14),
           ),
           const SizedBox(height: 20),
-          Text(
+          const Text(
             'Transcription',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),

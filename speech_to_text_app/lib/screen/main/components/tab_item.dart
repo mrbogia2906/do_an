@@ -23,6 +23,8 @@ class TabItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return InkWell(
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       onTap: onTap,
       child: Container(
         height: 80,
@@ -30,7 +32,7 @@ class TabItem extends ConsumerWidget {
         decoration: BoxDecoration(
           border: Border(
             top: BorderSide(
-              color: isActive ? ColorName.blue : ColorName.grayFFFAFAFA,
+              color: isActive ? ColorName.white : ColorName.grayFFFAFAFA,
               width: isActive ? 0 : 0,
             ),
           ),

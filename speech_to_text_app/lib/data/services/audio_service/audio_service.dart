@@ -159,6 +159,96 @@ class AudioService {
     }
   }
 
+  Future<List<Todo>> getTodoList(String token) async {
+    final uri = Uri.parse('$baseUrl/todos');
+    final response = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final decodedBody = json.decode(utf8.decode(response.bodyBytes));
+      return (decodedBody as List)
+          .map<Todo>((json) => Todo.fromJson(json))
+          .toList();
+    } else {
+      throw Exception('Failed to fetch to-dos: ${response.body}');
+    }
+  }
+
+  Future<Todo> createTodo(String transcriptionId, String title,
+      String description, String token) async {
+    final uri = Uri.parse('$baseUrl/todos');
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+      },
+      body: json.encode({
+        'transcription_id': transcriptionId,
+        'title': title,
+        'description': description,
+        'is_completed': false,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final decodedBody = json.decode(utf8.decode(response.bodyBytes));
+      return Todo.fromJson(decodedBody);
+    } else {
+      throw Exception('Failed to create to-do: ${response.body}');
+    }
+  }
+
+  Future<Todo> updateTodoStatus(
+      String todoId, bool status, String token) async {
+    final uri = Uri.parse('$baseUrl/todos/$todoId');
+    final response = await http.patch(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+      },
+      body: json.encode({
+        'is_completed': status,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final decodedBody = json.decode(utf8.decode(response.bodyBytes));
+      return Todo.fromJson(decodedBody);
+    } else {
+      throw Exception('Failed to toggle to-do status: ${response.body}');
+    }
+  }
+
+  Future<Todo> updateTodoDetail(String todoId, String? newTitle,
+      String? newDescription, String token) async {
+    final uri = Uri.parse('$baseUrl/todos/$todoId');
+    final response = await http.patch(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': token,
+      },
+      body: json.encode({
+        'title': newTitle,
+        'description': newDescription,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final decodedBody = json.decode(utf8.decode(response.bodyBytes));
+      return Todo.fromJson(decodedBody);
+    } else {
+      throw Exception('Failed to update to-do title: ${response.body}');
+    }
+  }
+
   Future<AudioFile> updateAudioFileTitle(
       String audioId, String newTitle, String token) async {
     final uri = Uri.parse('$baseUrl/audio-files/$audioId/title');

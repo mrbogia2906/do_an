@@ -48,6 +48,9 @@ class $AssetsGoogleGen {
 class $AssetsIconsGen {
   const $AssetsIconsGen();
 
+  /// File path: assets/icons/account.svg
+  SvgGenImage get account => const SvgGenImage('assets/icons/account.svg');
+
   /// File path: assets/icons/add.svg
   SvgGenImage get add => const SvgGenImage('assets/icons/add.svg');
 
@@ -141,6 +144,9 @@ class $AssetsIconsGen {
   SvgGenImage get smilingFace =>
       const SvgGenImage('assets/icons/smiling-face.svg');
 
+  /// File path: assets/icons/star.svg
+  SvgGenImage get star => const SvgGenImage('assets/icons/star.svg');
+
   /// File path: assets/icons/todo.svg
   SvgGenImage get todo => const SvgGenImage('assets/icons/todo.svg');
 
@@ -155,6 +161,7 @@ class $AssetsIconsGen {
 
   /// List of all assets
   List<SvgGenImage> get values => [
+        account,
         add,
         angry,
         comment,
@@ -184,6 +191,7 @@ class $AssetsIconsGen {
         setting,
         share,
         smilingFace,
+        star,
         todo,
         video,
         videoOn,

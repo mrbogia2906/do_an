@@ -52,7 +52,7 @@ class _AppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           child: child ?? Container(),
         );
       },
-      debugShowCheckedModeBanner: true,
+      debugShowCheckedModeBanner: false,
       routerConfig: ref.read(appRouterProvider).config(),
       scaffoldMessengerKey: scaffoldMessengerKey,
     );

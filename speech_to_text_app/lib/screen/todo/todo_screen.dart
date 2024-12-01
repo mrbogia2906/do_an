@@ -2,10 +2,12 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text_app/components/base_view/base_view.dart';
+import 'package:speech_to_text_app/components/loading/container_with_loading.dart';
 import 'package:speech_to_text_app/components/loading/loading_view_model.dart';
 import 'package:speech_to_text_app/screen/todo/todo_state.dart';
 import 'package:speech_to_text_app/screen/todo/todo_view_model.dart';
 
+import '../../data/models/api/responses/todo/todo.dart';
 import '../../router/app_router.dart';
 
 final _provider = StateNotifierProvider.autoDispose<TodoViewModel, TodoState>(
@@ -33,115 +35,73 @@ class _TodoViewState extends BaseViewState<TodoScreen, TodoViewModel> {
 
   @override
   PreferredSizeWidget? buildAppBar(BuildContext context) => AppBar(
-        title: const Text('To-do list'),
+        title: const Text('To-do list',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            )),
         elevation: 0,
         backgroundColor: Colors.white,
+        scrolledUnderElevation: 0,
       );
 
   @override
   Widget buildBody(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Toggle Buttons (By recording / By time)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    // Group todos by their audio title
+    final Map<String, List<Todo>> groupedTodos = {};
+
+    for (var todo in state.todos) {
+      String groupTitle = todo.audioTitle ?? 'Unknown';
+      if (!groupedTodos.containsKey(groupTitle)) {
+        groupedTodos[groupTitle] = [];
+      }
+      groupedTodos[groupTitle]!.add(todo);
+    }
+
+    return ContainerWithLoading(
+      child: RefreshIndicator(
+        onRefresh: _refreshScreen,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+              // To-do list section
+              Expanded(
+                child: ListView.builder(
+                  itemCount: groupedTodos.keys.length,
+                  itemBuilder: (context, index) {
+                    String groupTitle = groupedTodos.keys.elementAt(index);
+                    List<Todo> todoItems = groupedTodos[groupTitle]!;
+
+                    return TodoGroup(
+                      groupTitle: groupTitle,
+                      todoItems: todoItems
+                          .map((todo) => _buildTodoItem(
+                              todo.id, todo.title, todo.isCompleted ?? false))
+                          .toList(),
+                    );
+                  },
                 ),
-                child: const Text('By recording'),
-              ),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[200],
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: const Text('By time'),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Search bar
-          TextField(
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: 'Search content',
-              filled: true,
-              fillColor: Colors.grey[200],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // To-do list section
-          Expanded(
-            child: ListView(
-              children: [
-                TodoGroup(
-                  groupTitle: 'Cuộc họp mẫu: Họp Đại hội Cổ',
-                  todoItems: [
-                    'Khai trương 6 trung tâm thương mại mới, nâng tổng số lên 89 trung tâm',
-                    'Tiếp tục phát triển các sản phẩm Megamall, mô hình Life Design Mode và kiến trúc độc đáo',
-                    'Cải thiện hệ thống cơ sở vật chất, nâng cao chất lượng dịch vụ khách hàng',
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TodoGroup(
-                  groupTitle: 'Kế hoạch 2025',
-                  todoItems: [
-                    'Mở rộng chi nhánh quốc tế',
-                    'Triển khai hệ thống quản lý thông minh',
-                    'Tăng cường đào tạo nhân viên',
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Add new to-do
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.add),
-              label: const Text('Add new to-do'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-// Helper method to build to-do items
-  Widget _buildTodoItem(String title) {
+  Widget _buildTodoItem(String id, String title, bool isCompleted) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
           Checkbox(
-            value: false,
-            onChanged: (value) {},
+            value: isCompleted,
+            onChanged: (bool? value) {
+              viewModel.toggleTodoCompletion(id, value ?? false);
+            },
           ),
           Expanded(
             child: Text(
@@ -152,6 +112,10 @@ class _TodoViewState extends BaseViewState<TodoScreen, TodoViewModel> {
         ],
       ),
     );
+  }
+
+  Future<void> _refreshScreen() async {
+    await viewModel.initData();
   }
 
   @override
@@ -183,49 +147,36 @@ class _TodoViewState extends BaseViewState<TodoScreen, TodoViewModel> {
 
 class TodoGroup extends StatelessWidget {
   final String groupTitle;
-  final List<String> todoItems;
+  final List<Widget> todoItems;
 
   const TodoGroup({
-    Key? key,
+    super.key,
     required this.groupTitle,
     required this.todoItems,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          groupTitle,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...todoItems.map((item) => _buildTodoItem(item)).toList(),
-      ],
-    );
-  }
-
-  Widget _buildTodoItem(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Checkbox(
-            value: false,
-            onChanged: (value) {},
-          ),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 16),
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              groupTitle,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            ...todoItems,
+          ],
+        ),
       ),
     );
   }

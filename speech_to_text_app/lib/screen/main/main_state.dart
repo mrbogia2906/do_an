@@ -58,6 +58,17 @@ class TranscriptionEntry {
     );
   }
 
+  factory TranscriptionEntry.empty() {
+    return TranscriptionEntry(
+      id: '',
+      audioFileId: '',
+      createdAt: DateTime.now(),
+      content: '',
+      isProcessing: false,
+      isError: false,
+    );
+  }
+
   // Chuyển TranscriptionEntry thành JSON
   Map<String, dynamic> toJson() {
     return {

@@ -45,7 +45,12 @@ class _UpgradeViewState extends BaseViewState<UpgradeScreen, UpgradeViewModel> {
 
   @override
   PreferredSizeWidget? buildAppBar(BuildContext context) => AppBar(
-        title: const Text("Nâng Cấp Tài Khoản"),
+        title: const Text(
+          "Upgrade Account",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.white,
       );
 
   double get usageRatio {
@@ -178,21 +183,32 @@ class _UpgradeViewState extends BaseViewState<UpgradeScreen, UpgradeViewModel> {
                   ? const Center(child: CircularProgressIndicator())
                   : Padding(
                       padding: const EdgeInsets.only(bottom: 12.0),
-                      child: SizedBox(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Colors.blue, Colors.purple],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
                             await _showConfirmationDialog(context);
                           },
-                          child: const Text(
-                            "Nâng Cấp",
-                            style: TextStyle(fontSize: 18),
-                          ),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 15),
-                            backgroundColor: Colors.blueAccent,
+                            backgroundColor: Colors.transparent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            "Upgrade Now",
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
                             ),
                           ),
                         ),

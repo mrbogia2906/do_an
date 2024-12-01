@@ -164,7 +164,6 @@ class HomeViewModel extends BaseViewModel<HomeState> {
     }
 
     try {
-      // Nếu bạn muốn thêm trạng thái loading, cập nhật state ở đây
       // state = state.copyWith(isUpdatingTitle: true);
 
       final updatedAudioFile = await _audioService.updateAudioFileTitle(
@@ -173,7 +172,6 @@ class HomeViewModel extends BaseViewModel<HomeState> {
       // Cập nhật AudioFile trong local state
       ref.read(audioFilesProvider.notifier).updateAudioFile(updatedAudioFile);
 
-      // Nếu cần, cập nhật TranscriptionEntry liên quan (nếu nó chứa thông tin title từ AudioFile)
       final transcriptionEntries = ref.read(transcriptionProvider);
       final updatedTranscriptions = transcriptionEntries.map((entry) {
         if (entry.audioFileId == audioFile.id) {
@@ -195,14 +193,10 @@ class HomeViewModel extends BaseViewModel<HomeState> {
 
       print('AudioFile title updated successfully.');
 
-      // Nếu bạn thêm trạng thái loading, cập nhật state sau khi cập nhật xong
       // state = state.copyWith(isUpdatingTitle: false);
     } catch (e) {
       print('Error updating AudioFile title: $e');
-      // Nếu bạn thêm trạng thái loading, cập nhật state nếu có lỗi
       // state = state.copyWith(isUpdatingTitle: false);
-      // Xử lý lỗi, ví dụ: hiển thị thông báo cho người dùng
     }
   }
-  // Các phương thức khác nếu cần
 }

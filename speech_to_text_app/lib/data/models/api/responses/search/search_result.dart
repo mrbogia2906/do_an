@@ -1,37 +1,15 @@
-import 'dart:convert';
+import '../../../../../screen/main/main_state.dart';
+import '../audio_file/audio_file.dart';
 
 class SearchResult {
-  final String type;
-  final String id;
-  final String? title;
-  final String? content;
-  final String? audioFileId;
-  final DateTime? uploadedAt;
-  final DateTime? createdAt;
+  final AudioFile audio;
+  final TranscriptionEntry transcription;
 
-  SearchResult({
-    required this.type,
-    required this.id,
-    this.title,
-    this.content,
-    this.audioFileId,
-    this.uploadedAt,
-    this.createdAt,
-  });
+  SearchResult({required this.audio, required this.transcription});
 
   factory SearchResult.fromJson(Map<String, dynamic> json) {
     return SearchResult(
-      type: json['type'],
-      id: json['id'],
-      title: json['title'],
-      content: json['content'],
-      audioFileId: json['audio_file_id'],
-      uploadedAt: json['uploaded_at'] != null
-          ? DateTime.parse(json['uploaded_at'])
-          : null,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : null,
-    );
+        audio: AudioFile.fromJson(json['audio']),
+        transcription: TranscriptionEntry.fromJson(json['transcription']));
   }
 }

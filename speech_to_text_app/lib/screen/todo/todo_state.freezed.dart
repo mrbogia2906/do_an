@@ -17,6 +17,7 @@ final _privateConstructorUsedError = UnsupportedError(
 /// @nodoc
 mixin _$TodoState {
   bool get loading => throw _privateConstructorUsedError;
+  List<Todo> get todos => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $TodoStateCopyWith<TodoState> get copyWith =>
@@ -28,7 +29,7 @@ abstract class $TodoStateCopyWith<$Res> {
   factory $TodoStateCopyWith(TodoState value, $Res Function(TodoState) then) =
       _$TodoStateCopyWithImpl<$Res, TodoState>;
   @useResult
-  $Res call({bool loading});
+  $Res call({bool loading, List<Todo> todos});
 }
 
 /// @nodoc
@@ -45,12 +46,17 @@ class _$TodoStateCopyWithImpl<$Res, $Val extends TodoState>
   @override
   $Res call({
     Object? loading = null,
+    Object? todos = null,
   }) {
     return _then(_value.copyWith(
       loading: null == loading
           ? _value.loading
           : loading // ignore: cast_nullable_to_non_nullable
               as bool,
+      todos: null == todos
+          ? _value.todos
+          : todos // ignore: cast_nullable_to_non_nullable
+              as List<Todo>,
     ) as $Val);
   }
 }
@@ -63,7 +69,7 @@ abstract class _$$TodoStateImplCopyWith<$Res>
       __$$TodoStateImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({bool loading});
+  $Res call({bool loading, List<Todo> todos});
 }
 
 /// @nodoc
@@ -78,12 +84,17 @@ class __$$TodoStateImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? loading = null,
+    Object? todos = null,
   }) {
     return _then(_$TodoStateImpl(
       loading: null == loading
           ? _value.loading
           : loading // ignore: cast_nullable_to_non_nullable
               as bool,
+      todos: null == todos
+          ? _value._todos
+          : todos // ignore: cast_nullable_to_non_nullable
+              as List<Todo>,
     ));
   }
 }
@@ -91,15 +102,25 @@ class __$$TodoStateImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$TodoStateImpl extends _TodoState {
-  _$TodoStateImpl({this.loading = true}) : super._();
+  _$TodoStateImpl({this.loading = true, final List<Todo> todos = const []})
+      : _todos = todos,
+        super._();
 
   @override
   @JsonKey()
   final bool loading;
+  final List<Todo> _todos;
+  @override
+  @JsonKey()
+  List<Todo> get todos {
+    if (_todos is EqualUnmodifiableListView) return _todos;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_todos);
+  }
 
   @override
   String toString() {
-    return 'TodoState(loading: $loading)';
+    return 'TodoState(loading: $loading, todos: $todos)';
   }
 
   @override
@@ -107,11 +128,13 @@ class _$TodoStateImpl extends _TodoState {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$TodoStateImpl &&
-            (identical(other.loading, loading) || other.loading == loading));
+            (identical(other.loading, loading) || other.loading == loading) &&
+            const DeepCollectionEquality().equals(other._todos, _todos));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, loading);
+  int get hashCode => Object.hash(
+      runtimeType, loading, const DeepCollectionEquality().hash(_todos));
 
   @JsonKey(ignore: true)
   @override
@@ -121,11 +144,14 @@ class _$TodoStateImpl extends _TodoState {
 }
 
 abstract class _TodoState extends TodoState {
-  factory _TodoState({final bool loading}) = _$TodoStateImpl;
+  factory _TodoState({final bool loading, final List<Todo> todos}) =
+      _$TodoStateImpl;
   _TodoState._() : super._();
 
   @override
   bool get loading;
+  @override
+  List<Todo> get todos;
   @override
   @JsonKey(ignore: true)
   _$$TodoStateImplCopyWith<_$TodoStateImpl> get copyWith =>

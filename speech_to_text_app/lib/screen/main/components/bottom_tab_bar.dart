@@ -17,7 +17,7 @@ class BottomTabBar extends StatelessWidget {
     return BottomAppBar(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       height: 60,
-      color: Colors.cyan.shade400,
+      color: Colors.white,
       shape: const CircularNotchedRectangle(),
       notchMargin: 5,
       child: Row(
@@ -41,9 +41,9 @@ class BottomTabBar extends StatelessWidget {
           const SizedBox(width: 48), // Space for the FloatingActionButton
           Flexible(
             child: TabItem(
-              mainTab: MainTab.search,
-              isActive: tabsRouter.activeIndex == MainTab.search.index,
-              onTap: () => tabsRouter.setActiveIndex(MainTab.search.index),
+              mainTab: MainTab.upgrade,
+              isActive: tabsRouter.activeIndex == MainTab.upgrade.index,
+              onTap: () => tabsRouter.setActiveIndex(MainTab.upgrade.index),
             ),
           ),
           Flexible(

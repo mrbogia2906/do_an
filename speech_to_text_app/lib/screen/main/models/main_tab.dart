@@ -6,7 +6,7 @@ import '../../../utilities/constants/text_constants.dart';
 enum MainTab {
   home,
   todo,
-  search,
+  upgrade,
   account,
 }
 
@@ -17,8 +17,8 @@ extension MainTabExtension on MainTab {
         return TextConstants.home;
       case MainTab.todo:
         return TextConstants.todo;
-      case MainTab.search:
-        return TextConstants.search;
+      case MainTab.upgrade:
+        return TextConstants.upgrade;
       case MainTab.account:
         return TextConstants.account;
     }
@@ -27,26 +27,26 @@ extension MainTabExtension on MainTab {
   String iconPath(BuildContext context) {
     switch (this) {
       case MainTab.home:
-        return Assets.icons.home.path;
+        return Assets.icons.home1.path;
       case MainTab.todo:
-        return Assets.icons.favorite.path;
-      case MainTab.search:
-        return Assets.icons.search.path;
+        return Assets.icons.todo.path;
+      case MainTab.upgrade:
+        return Assets.icons.star.path;
       case MainTab.account:
-        return Assets.icons.profile.path;
+        return Assets.icons.account.path;
     }
   }
 
   String activeIconPath(BuildContext context) {
     switch (this) {
       case MainTab.home:
-        return Assets.icons.homeOn.path;
+        return Assets.icons.home1.path;
       case MainTab.todo:
-        return Assets.icons.favoriteOn.path;
-      case MainTab.search:
-        return Assets.icons.searchOn.path;
+        return Assets.icons.todo.path;
+      case MainTab.upgrade:
+        return Assets.icons.star.path;
       case MainTab.account:
-        return Assets.icons.profileOn.path;
+        return Assets.icons.account.path;
     }
   }
 }

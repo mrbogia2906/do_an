@@ -24,7 +24,7 @@ from pydub.utils import which
 
 from pydantic_schemas.audio_file import AudioFileResponse, AudioFileUpdateTitle
 from pydantic_schemas.transcription import TranscriptionResponse
-from pydantic_schemas.todo import TodoResponse
+from pydantic_schemas.todo import TodoResponse, TodoWithAudioResponse, TodoUpdate, TodoCreate2
 from tinytag import TinyTag
 
 logger = logging.getLogger(__name__)
@@ -430,7 +430,7 @@ async def generate_todos(
         logger.error("Error during to-do generation enqueue:", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/transcriptions/{transcription_id}/todos", response_model=List[TodoResponse])
+@router.get("/transcriptions/{transcription_id}/todos", response_model=List[TodoWithAudioResponse])
 def get_todos(
     transcription_id: str,
     db: Session = Depends(get_db),
@@ -438,7 +438,9 @@ def get_todos(
 ):
     try:
         user_id = user_dict['uid']
-        transcription = db.query(Transcription).join(AudioFile).filter(
+
+        # Lấy transcription với audio title liên kết với transcription_id và user_id
+        transcription = db.query(Transcription, AudioFile.title).join(AudioFile).filter(
             Transcription.id == transcription_id,
             AudioFile.user_id == user_id
         ).first()
@@ -446,12 +448,167 @@ def get_todos(
         if not transcription:
             raise HTTPException(status_code=404, detail="Transcription not found")
 
+        # Lấy AudioFile dựa trên transcription_id
+        audiofile = db.query(AudioFile).join(Transcription).filter(Transcription.audio_file_id == AudioFile.id).first()
+
+        if not audiofile:
+            raise HTTPException(status_code=404, detail="AudioFile not found")
+        # Lấy danh sách todos của transcription
         todos = db.query(Todo).filter(Todo.transcription_id == transcription_id).all()
 
-        return todos
+        # Trả về danh sách todos kèm theo audio title
+        return [
+            {
+                "id": todo.id,
+                "transcription_id": todo.transcription_id,
+                "title": todo.title,
+                "description": todo.description,
+                "is_completed": todo.is_completed,
+                "audio_title": audiofile.title,  
+            }
+            for todo in todos
+        ]
 
     except Exception as e:
         logger.error("Error fetching to-dos:", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/todos", response_model=List[TodoWithAudioResponse])
+def get_todos(db: Session = Depends(get_db), user_dict=Depends(auth_middleware)):
+    try:
+        user_id = user_dict['uid']
+
+        # Lấy tất cả transcription có liên kết với user_id
+        transcriptions = db.query(Transcription, AudioFile.title).join(AudioFile).filter(AudioFile.user_id == user_id).order_by(Transcription.created_at.desc()).all()
+
+        if not transcriptions:
+            raise HTTPException(status_code=404, detail="No transcriptions found")
+        
+        # Lấy danh sách todos của tất cả transcription
+        todos = db.query(Todo).filter(Todo.transcription_id.in_([transcription[0].id for transcription in transcriptions])).all()
+
+        # Sắp xếp todos theo ngày tạo của transcription (mới nhất đến cũ nhất)
+        todos_sorted = sorted(
+            todos,
+            key=lambda todo: next(
+                (transcription.created_at for transcription, _ in transcriptions if transcription.id == todo.transcription_id),
+                datetime.min  # Nếu không tìm thấy transcription thì đặt giá trị mặc định là ngày nhỏ nhất
+            ),
+            reverse=True  # Sắp xếp giảm dần
+        )
+        
+        # Trả về danh sách todos kèm theo audio title của mỗi transcription
+        return [
+            {
+                "id": todo.id,
+                "transcription_id": todo.transcription_id,
+                "title": todo.title,
+                "description": todo.description,
+                "is_completed": todo.is_completed,
+                "audio_title": next(
+                    (audio_title for transcription, audio_title in transcriptions if transcription.id == todo.transcription_id),
+                    ""  # Default value if no match
+                ),
+            }
+            for todo in todos_sorted
+        ]
+
+    except Exception as e:
+        logger.error("Error fetching todos:", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@router.patch("/todos/{todo_id}", response_model=TodoWithAudioResponse)
+def update_todo(
+    todo_id: str,
+    updated_todo: TodoUpdate,  
+    db: Session = Depends(get_db),
+    user_dict=Depends(auth_middleware)
+):
+    try:
+        user_id = user_dict['uid']
+        
+        # Kiểm tra xem todo có tồn tại không
+        todo = db.query(Todo).filter(Todo.id == todo_id).first()
+        if not todo:
+            raise HTTPException(status_code=404, detail="Todo not found")
+        audiofile = db.query(AudioFile).join(Transcription).filter(
+            todo.transcription_id == Transcription.id,
+            Transcription.audio_file_id == AudioFile.id).first()
+
+        if not audiofile:
+            raise HTTPException(status_code=404, detail="AudioFile not found")
+        # Cập nhật tiêu đề, mô tả và trạng thái hoàn thành
+        if updated_todo.title is not None:
+            todo.title = updated_todo.title
+        if updated_todo.description is not None:
+            todo.description = updated_todo.description
+        if updated_todo.is_completed is not None:
+            todo.is_completed = updated_todo.is_completed
+
+        db.commit()
+
+        # Trả về thông tin của todo đã được cập nhật
+        return {
+            "id": todo.id,
+            "transcription_id": todo.transcription_id,
+            "title": todo.title,
+            "description": todo.description,
+            "is_completed": todo.is_completed,
+            "audio_title": audiofile.title,
+        }
+
+    except Exception as e:
+        logger.error("Error updating todo:", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/todos", response_model=TodoWithAudioResponse)
+def create_todo(
+    new_todo: TodoCreate2,
+    db: Session = Depends(get_db),
+    user_dict=Depends(auth_middleware)
+):
+    try:
+        user_id = user_dict['uid']
+
+        # Kiểm tra xem transcription_id có tồn tại không
+        transcription = db.query(Transcription).filter(Transcription.id == new_todo.transcription_id).first()
+
+        if not transcription:
+            raise HTTPException(status_code=404, detail="Transcription not found")
+
+        # Tạo một Todo mới và liên kết với transcription_id
+        todo = Todo(
+            transcription_id=new_todo.transcription_id,
+            title=new_todo.title,
+            description=new_todo.description,
+            is_completed=new_todo.is_completed,
+        )
+
+        db.add(todo)
+        db.commit()
+
+        # Lấy thông tin audio title từ AudioFile liên kết với transcription
+        audiofile = db.query(AudioFile).join(Transcription).filter(
+            transcription.id == Transcription.id,
+            transcription.audio_file_id == AudioFile.id).first()
+
+        if not audiofile:
+            raise HTTPException(status_code=404, detail="AudioFile not found")
+
+        # Trả về Todo mới đã tạo
+        return {
+            "id": todo.id,
+            "transcription_id": todo.transcription_id,
+            "title": todo.title,
+            "description": todo.description,
+            "is_completed": todo.is_completed,
+            "audio_title": audiofile.title,
+        }
+
+    except Exception as e:
+        logger.error("Error creating todo:", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

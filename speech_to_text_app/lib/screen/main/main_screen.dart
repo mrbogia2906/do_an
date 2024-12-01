@@ -58,6 +58,7 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
 
           showModalBottomSheet(
             isScrollControlled: true,
+            isDismissible: false,
             context: context,
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -67,8 +68,26 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
             },
           );
         },
-        child: const Icon(Icons.mic),
-        backgroundColor: Colors.purple,
+        backgroundColor: Colors.blue,
+        child: Container(
+          width: 56.0,
+          height: 56.0,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [
+                Colors.blue,
+                Colors.purple,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: const Icon(
+            Icons.mic,
+            color: Colors.white,
+          ),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBuilder: (context, tabsRouter) {
@@ -105,17 +124,29 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
               const SizedBox(height: 20),
               // Hiển thị các trạng thái ghi âm
               if (recordingState.recordingState == RecordingState.idle) ...[
-                ElevatedButton.icon(
-                  onPressed: () {
-                    viewModel.startRecording();
-                  },
-                  icon: const Icon(Icons.mic, color: Colors.white),
-                  label: const Text('Record'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Colors.blue, Colors.purple],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      viewModel.startRecording();
+                    },
+                    icon: const Icon(Icons.mic, color: Colors.white),
+                    label: const Text('Record',
+                        style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Colors.transparent, // Đặt màu nền thành trong suốt
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
@@ -131,6 +162,7 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
                       onTap: () async {
                         Navigator.pop(context);
                         await showModalBottomSheet(
+                          isDismissible: false,
                           context: context,
                           shape: const RoundedRectangleBorder(
                             borderRadius:
@@ -148,6 +180,8 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
                       onTap: () {
                         Navigator.pop(context);
                         showModalBottomSheet(
+                          isDismissible: false,
+                          isScrollControlled: true,
                           context: context,
                           shape: const RoundedRectangleBorder(
                             borderRadius:
@@ -263,37 +297,48 @@ class _MainViewState extends BaseViewState<MainScreen, MainViewModel> {
             ],
           ),
           const SizedBox(height: 20),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Choose language',
-              border: OutlineInputBorder(),
+          // DropdownButtonFormField<String>(
+          //   decoration: const InputDecoration(
+          //     labelText: 'Choose language',
+          //     border: OutlineInputBorder(),
+          //   ),
+          //   items: ['Vietnamese', 'English'].map((String language) {
+          //     return DropdownMenuItem<String>(
+          //       value: language,
+          //       child: Text(language),
+          //     );
+          //   }).toList(),
+          //   onChanged: (String? value) {},
+          // ),
+          // const SizedBox(height: 20),
+          // const Text(
+          //   'Selecting the appropriate language helps improve the quality of the recording',
+          //   style: TextStyle(color: Colors.grey),
+          // ),
+          // const SizedBox(height: 20),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Colors.blue, Colors.purple],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(10),
             ),
-            items: ['Vietnamese', 'English'].map((String language) {
-              return DropdownMenuItem<String>(
-                value: language,
-                child: Text(language),
-              );
-            }).toList(),
-            onChanged: (String? value) {},
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Selecting the appropriate language helps improve the quality of the recording',
-            style: TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () {
-              viewModel.pickAudioFile2(context);
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.upload, color: Colors.white),
-            label: const Text('Choose file to upload'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                viewModel.pickAudioFile2(context);
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.upload, color: Colors.white),
+              label: const Text('Choose file to upload',
+                  style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -335,7 +380,9 @@ class _OptionButton extends StatelessWidget {
           icon: Icon(icon, color: Colors.purple, size: 30),
           onPressed: onTap,
         ),
-        Text(label, style: const TextStyle(color: Colors.purple)),
+        Text(label,
+            style: const TextStyle(
+                color: Colors.purple, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -384,22 +431,35 @@ class _YouTubeLinkSheetState extends State<YouTubeLinkSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            // Dropdown chọn ngôn ngữ
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Choose language',
-                border: OutlineInputBorder(),
+            RichText(
+              text: const TextSpan(
+                text: 'Please enter format url: ',
+                style: TextStyle(color: Colors.black),
+                children: [
+                  TextSpan(
+                    text: 'https://www.youtube.com/watch?v=videoId',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
-              items: ['Vietnamese', 'English'].map((String language) {
-                return DropdownMenuItem<String>(
-                  value: language,
-                  child: Text(language),
-                );
-              }).toList(),
-              onChanged: (String? value) {},
             ),
             const SizedBox(height: 20),
+
+            // Dropdown chọn ngôn ngữ
+            // DropdownButtonFormField<String>(
+            //   decoration: const InputDecoration(
+            //     labelText: 'Choose language',
+            //     border: OutlineInputBorder(),
+            //   ),
+            //   items: ['Vietnamese', 'English'].map((String language) {
+            //     return DropdownMenuItem<String>(
+            //       value: language,
+            //       child: Text(language),
+            //     );
+            //   }).toList(),
+            //   onChanged: (String? value) {},
+            // ),
+            // const SizedBox(height: 20),
             // Trường nhập liệu cho YouTube link
             TextFormField(
               controller: _controller,
@@ -411,56 +471,67 @@ class _YouTubeLinkSheetState extends State<YouTubeLinkSheet> {
             ),
             const SizedBox(height: 20),
             // Nút bắt đầu
-            ElevatedButton.icon(
-              onPressed: () {
-                String youtubeLink = _controller.text.trim();
-                if (youtubeLink.isNotEmpty) {
-                  // Xử lý URL để lấy key và videoTitle
-                  Uri? uri = Uri.tryParse(youtubeLink);
-                  if (uri != null &&
-                      (uri.host.contains('youtube.com') ||
-                          uri.host.contains('youtu.be'))) {
-                    String? videoId;
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.blue, Colors.purple],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  String youtubeLink = _controller.text.trim();
+                  if (youtubeLink.isNotEmpty) {
+                    // Xử lý URL để lấy key và videoTitle
+                    Uri? uri = Uri.tryParse(youtubeLink);
+                    if (uri != null &&
+                        (uri.host.contains('youtube.com') ||
+                            uri.host.contains('youtu.be'))) {
+                      String? videoId;
 
-                    if (uri.host.contains('youtu.be')) {
-                      videoId = uri.pathSegments.last;
+                      if (uri.host.contains('youtu.be')) {
+                        videoId = uri.pathSegments.last;
+                      } else {
+                        videoId = uri.queryParameters['v'];
+                      }
+
+                      if (videoId != null) {
+                        widget.viewModel
+                            .checkAndDownloadAudio(videoId, context);
+
+                        Navigator.pop(context);
+                      } else {
+                        // Hiển thị thông báo lỗi nếu không lấy được videoId
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Invalid YouTube link')),
+                        );
+                      }
                     } else {
-                      videoId = uri.queryParameters['v'];
-                    }
-
-                    if (videoId != null) {
-                      // Gọi phương thức xử lý
-                      widget.viewModel.checkAndDownloadAudio(videoId, context);
-
-                      Navigator.pop(context);
-                    } else {
-                      // Hiển thị thông báo lỗi nếu không lấy được videoId
+                      // Hiển thị thông báo lỗi nếu URL không hợp lệ
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Invalid YouTube link')),
+                        const SnackBar(
+                            content: Text('Please enter a valid YouTube link')),
                       );
                     }
                   } else {
-                    // Hiển thị thông báo lỗi nếu URL không hợp lệ
+                    // Hiển thị thông báo nếu trường nhập liệu trống
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Please enter a valid YouTube link')),
+                          content: Text('Please enter a YouTube link')),
                     );
                   }
-                } else {
-                  // Hiển thị thông báo nếu trường nhập liệu trống
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Please enter a YouTube link')),
-                  );
-                }
-              },
-              icon: const Icon(Icons.play_arrow, color: Colors.white),
-              label: const Text('Start'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                },
+                icon: const Icon(Icons.play_arrow, color: Colors.white),
+                label:
+                    const Text('Start', style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),

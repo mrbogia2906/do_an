@@ -117,6 +117,7 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
       builder: (_) {
         return Padding(
           padding: EdgeInsets.only(
@@ -132,10 +133,13 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
             children: [
               const Text('Change Username',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
               TextField(
                 controller: controller,
-                decoration:
-                    const InputDecoration(hintText: "Enter new username"),
+                decoration: const InputDecoration(
+                  hintText: "Enter new username",
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 10),
               Row(
@@ -178,6 +182,7 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
       builder: (_) {
         return Padding(
           padding: EdgeInsets.only(
@@ -192,19 +197,23 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
               const Text('Change Password',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              Text('Old password', style: TextStyle(color: Colors.grey)),
+              const Text('Old password', style: TextStyle(color: Colors.grey)),
               TextFormField(
                 controller: oldPasswordController,
-                decoration:
-                    const InputDecoration(hintText: "Enter old password"),
+                decoration: const InputDecoration(
+                  hintText: "Enter old password",
+                  border: OutlineInputBorder(),
+                ),
                 obscureText: true,
               ),
               const SizedBox(height: 10),
-              Text('New password', style: TextStyle(color: Colors.grey)),
+              const Text('New password', style: TextStyle(color: Colors.grey)),
               TextFormField(
                 controller: newPasswordController,
-                decoration:
-                    const InputDecoration(hintText: "Enter new password"),
+                decoration: const InputDecoration(
+                  hintText: "Enter new password",
+                  border: OutlineInputBorder(),
+                ),
                 obscureText: true,
               ),
               Row(
@@ -219,7 +228,7 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
                       // Validate password length
                       if (oldPassword.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text('Please enter old password'),
                             backgroundColor: Colors.red,
                           ),
@@ -229,7 +238,7 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
 
                       if (newPassword.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text('Please enter new password'),
                             backgroundColor: Colors.red,
                           ),
@@ -239,7 +248,7 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
 
                       if (newPassword.length < 6) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text(
                                 'New password must be at least 6 characters long'),
                             backgroundColor: Colors.red,
@@ -250,7 +259,7 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
 
                       if (oldPassword == newPassword) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text(
                                 'New password must be different from old password'),
                             backgroundColor: Colors.red,
@@ -263,17 +272,17 @@ class _AccountViewState extends BaseViewState<AccountScreen, AccountViewModel> {
                       bool? confirm = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: Text('Confirm Password Change'),
-                          content: Text(
+                          title: const Text('Confirm Password Change'),
+                          content: const Text(
                               'Are you sure you want to change your password?'),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context, false),
-                              child: Text('Cancel'),
+                              child: const Text('Cancel'),
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(context, true),
-                              child: Text('Confirm'),
+                              child: const Text('Confirm'),
                             ),
                           ],
                         ),

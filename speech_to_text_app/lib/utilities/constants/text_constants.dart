@@ -7,6 +7,7 @@ class TextConstants {
   static const logOut = 'Log Out';
   static const account = 'Account';
   static const todo = 'Todo';
+  static const upgrade = 'Upgrade';
   static const name = 'Name';
   static const email = 'Email';
   static const password = 'Password';

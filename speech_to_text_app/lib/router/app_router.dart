@@ -81,17 +81,11 @@ class AppRouter extends _$AppRouter {
         ),
         AutoRoute(
           page: AudioDetailsRoute.page,
-          path: '/entry',
+          path: '/audioDetails',
         ),
         AutoRoute(
           page: SearchRoute.page,
           path: '/search',
-          children: [
-            AutoRoute(
-              page: SearchRoute.page,
-              path: '',
-            ),
-          ],
         ),
       ];
 }

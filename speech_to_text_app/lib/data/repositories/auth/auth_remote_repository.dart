@@ -95,18 +95,14 @@ class AuthRemoteRepositoryImpl implements AuthRemoteRepository {
       );
 
       if (response.statusCode != 200) {
-        // Nếu máy chủ trả về lỗi, chúng ta không nên cố gắng giải mã JSON
         String errorDetail = 'Login failed';
         try {
           final resBodyMap = jsonDecode(response.body) as Map<String, dynamic>;
           errorDetail = resBodyMap['detail'] ?? errorDetail;
-        } catch (e) {
-          // Không làm gì, giữ nguyên errorDetail
-        }
+        } catch (e) {}
         throw AppFailure(errorDetail);
       }
 
-      // Chỉ giải mã JSON khi mã trạng thái là 200
       final resBodyMap = jsonDecode(response.body) as Map<String, dynamic>;
 
       return UserModel.fromMap(resBodyMap['user']).copyWith(

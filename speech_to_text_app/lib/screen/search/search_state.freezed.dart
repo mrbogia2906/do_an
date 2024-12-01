@@ -21,6 +21,7 @@ mixin _$SearchState {
   List<AudioFile> get audioFiles => throw _privateConstructorUsedError;
   String get searchQuery => throw _privateConstructorUsedError;
   List<String> get searchQueryHistory => throw _privateConstructorUsedError;
+  List<SearchResult> get searchResults => throw _privateConstructorUsedError;
 
   @JsonKey(ignore: true)
   $SearchStateCopyWith<SearchState> get copyWith =>
@@ -37,7 +38,8 @@ abstract class $SearchStateCopyWith<$Res> {
       {List<TranscriptionEntry> transcriptionHistory,
       List<AudioFile> audioFiles,
       String searchQuery,
-      List<String> searchQueryHistory});
+      List<String> searchQueryHistory,
+      List<SearchResult> searchResults});
 }
 
 /// @nodoc
@@ -57,6 +59,7 @@ class _$SearchStateCopyWithImpl<$Res, $Val extends SearchState>
     Object? audioFiles = null,
     Object? searchQuery = null,
     Object? searchQueryHistory = null,
+    Object? searchResults = null,
   }) {
     return _then(_value.copyWith(
       transcriptionHistory: null == transcriptionHistory
@@ -75,6 +78,10 @@ class _$SearchStateCopyWithImpl<$Res, $Val extends SearchState>
           ? _value.searchQueryHistory
           : searchQueryHistory // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      searchResults: null == searchResults
+          ? _value.searchResults
+          : searchResults // ignore: cast_nullable_to_non_nullable
+              as List<SearchResult>,
     ) as $Val);
   }
 }
@@ -91,7 +98,8 @@ abstract class _$$SearchStateImplCopyWith<$Res>
       {List<TranscriptionEntry> transcriptionHistory,
       List<AudioFile> audioFiles,
       String searchQuery,
-      List<String> searchQueryHistory});
+      List<String> searchQueryHistory,
+      List<SearchResult> searchResults});
 }
 
 /// @nodoc
@@ -109,6 +117,7 @@ class __$$SearchStateImplCopyWithImpl<$Res>
     Object? audioFiles = null,
     Object? searchQuery = null,
     Object? searchQueryHistory = null,
+    Object? searchResults = null,
   }) {
     return _then(_$SearchStateImpl(
       transcriptionHistory: null == transcriptionHistory
@@ -127,6 +136,10 @@ class __$$SearchStateImplCopyWithImpl<$Res>
           ? _value._searchQueryHistory
           : searchQueryHistory // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      searchResults: null == searchResults
+          ? _value._searchResults
+          : searchResults // ignore: cast_nullable_to_non_nullable
+              as List<SearchResult>,
     ));
   }
 }
@@ -138,10 +151,12 @@ class _$SearchStateImpl extends _SearchState {
       {final List<TranscriptionEntry> transcriptionHistory = const [],
       final List<AudioFile> audioFiles = const [],
       this.searchQuery = '',
-      final List<String> searchQueryHistory = const []})
+      final List<String> searchQueryHistory = const [],
+      final List<SearchResult> searchResults = const []})
       : _transcriptionHistory = transcriptionHistory,
         _audioFiles = audioFiles,
         _searchQueryHistory = searchQueryHistory,
+        _searchResults = searchResults,
         super._();
 
   final List<TranscriptionEntry> _transcriptionHistory;
@@ -176,9 +191,18 @@ class _$SearchStateImpl extends _SearchState {
     return EqualUnmodifiableListView(_searchQueryHistory);
   }
 
+  final List<SearchResult> _searchResults;
+  @override
+  @JsonKey()
+  List<SearchResult> get searchResults {
+    if (_searchResults is EqualUnmodifiableListView) return _searchResults;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_searchResults);
+  }
+
   @override
   String toString() {
-    return 'SearchState(transcriptionHistory: $transcriptionHistory, audioFiles: $audioFiles, searchQuery: $searchQuery, searchQueryHistory: $searchQueryHistory)';
+    return 'SearchState(transcriptionHistory: $transcriptionHistory, audioFiles: $audioFiles, searchQuery: $searchQuery, searchQueryHistory: $searchQueryHistory, searchResults: $searchResults)';
   }
 
   @override
@@ -193,7 +217,9 @@ class _$SearchStateImpl extends _SearchState {
             (identical(other.searchQuery, searchQuery) ||
                 other.searchQuery == searchQuery) &&
             const DeepCollectionEquality()
-                .equals(other._searchQueryHistory, _searchQueryHistory));
+                .equals(other._searchQueryHistory, _searchQueryHistory) &&
+            const DeepCollectionEquality()
+                .equals(other._searchResults, _searchResults));
   }
 
   @override
@@ -202,7 +228,8 @@ class _$SearchStateImpl extends _SearchState {
       const DeepCollectionEquality().hash(_transcriptionHistory),
       const DeepCollectionEquality().hash(_audioFiles),
       searchQuery,
-      const DeepCollectionEquality().hash(_searchQueryHistory));
+      const DeepCollectionEquality().hash(_searchQueryHistory),
+      const DeepCollectionEquality().hash(_searchResults));
 
   @JsonKey(ignore: true)
   @override
@@ -216,7 +243,8 @@ abstract class _SearchState extends SearchState {
       {final List<TranscriptionEntry> transcriptionHistory,
       final List<AudioFile> audioFiles,
       final String searchQuery,
-      final List<String> searchQueryHistory}) = _$SearchStateImpl;
+      final List<String> searchQueryHistory,
+      final List<SearchResult> searchResults}) = _$SearchStateImpl;
   _SearchState._() : super._();
 
   @override
@@ -227,6 +255,8 @@ abstract class _SearchState extends SearchState {
   String get searchQuery;
   @override
   List<String> get searchQueryHistory;
+  @override
+  List<SearchResult> get searchResults;
   @override
   @JsonKey(ignore: true)
   _$$SearchStateImplCopyWith<_$SearchStateImpl> get copyWith =>

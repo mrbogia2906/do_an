@@ -21,8 +21,7 @@ class AudioFile {
         fileUrl: json['file_url'],
         uploadedAt: DateTime.parse(json['uploaded_at']),
         transcriptionId: json['transcription_id'],
-        isProcessing:
-            json['is_processing'] ?? false, // Trường hợp không có giá trị
+        isProcessing: json['is_processing'] ?? false,
       );
 
   Map<String, dynamic> toJson() => {

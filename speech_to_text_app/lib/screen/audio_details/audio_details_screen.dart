@@ -61,8 +61,15 @@ class _AudioDetailsScreenState
   @override
   PreferredSizeWidget? buildAppBar(BuildContext context) {
     return AppBar(
-      title: const Text('Audio Details'),
+      title: const Text('Audio Details',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          )),
       centerTitle: true,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      backgroundColor: Colors.white,
     );
   }
 
@@ -169,7 +176,7 @@ class _AudioDetailsScreenState
                                           })) ...[
                                             ListTile(
                                               contentPadding:
-                                                  EdgeInsets.symmetric(
+                                                  const EdgeInsets.symmetric(
                                                       horizontal: 2.0),
                                               leading: Checkbox(
                                                 value: todo.isCompleted,
@@ -301,7 +308,6 @@ class _AudioDetailsScreenState
                                     ],
                                   ),
                                   const SizedBox(height: 10),
-                                  // Nếu đang ở chế độ chỉnh sửa, hiển thị TextField, ngược lại hiển thị Text
                                   _isEditingSummary
                                       ? TextField(
                                           controller: _summaryController,
@@ -605,7 +611,7 @@ class _RecordingTabState extends State<RecordingTab> {
     try {
       String signedUrl =
           await _audioService.getSignedUrl(widget.audioFile.id, widget.token);
-      print("Signed URL: $signedUrl"); // Để debug
+      print("Signed URL: $signedUrl");
 
       // Load audio từ Signed URL
       await _audioPlayer.setUrl(signedUrl);
@@ -630,7 +636,6 @@ class _RecordingTabState extends State<RecordingTab> {
       });
     } catch (e) {
       print('Error initializing audio player: $e');
-      // Hiển thị thông báo lỗi nếu cần
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading audio: $e')),
@@ -650,6 +655,24 @@ class _RecordingTabState extends State<RecordingTab> {
         _currentWordIndex = i;
         break;
       }
+    }
+  }
+
+  void _seekForward() {
+    final newPosition = _position + Duration(seconds: 5);
+    if (newPosition < _duration) {
+      _audioPlayer.seek(newPosition);
+    } else {
+      _audioPlayer.seek(_duration); // Không vượt quá thời gian audio
+    }
+  }
+
+  void _seekBackward() {
+    final newPosition = _position - Duration(seconds: 5);
+    if (newPosition > Duration.zero) {
+      _audioPlayer.seek(newPosition);
+    } else {
+      _audioPlayer.seek(Duration.zero); // Không lùi qua 0
     }
   }
 
@@ -703,7 +726,11 @@ class _RecordingTabState extends State<RecordingTab> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    iconSize: 64,
+                    icon: Icon(Icons.replay_5, size: 48), // Lùi 5 giây
+                    onPressed: _seekBackward,
+                  ),
+                  IconButton(
+                    iconSize: 48,
                     icon: Icon(
                       _isPlaying
                           ? Icons.pause_circle_filled
@@ -718,12 +745,16 @@ class _RecordingTabState extends State<RecordingTab> {
                       }
                     },
                   ),
+                  IconButton(
+                    icon: Icon(Icons.forward_5, size: 48), // Tua 5 giây
+                    onPressed: _seekForward,
+                  ),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 20),
-          // Additional Recording Details (nếu cần)
+          // Additional Recording Details
           const Text(
             'Audio File Details',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -753,13 +784,11 @@ class _RecordingTabState extends State<RecordingTab> {
     final words = widget.transcriptionEntry.words;
     List<TextSpan> wordSpans = [];
     if (words == null || words.isEmpty) {
-      // Fallback to displaying plain transcription text
       return Text(
         widget.transcriptionEntry.content ?? '',
         style: const TextStyle(fontSize: 16),
       );
     }
-    print('words.length = ${words.length}');
     for (int i = 0; i < words.length; i++) {
       final isCurrentWord = i == _currentWordIndex;
       wordSpans.add(

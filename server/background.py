@@ -77,7 +77,7 @@ async def upload_to_gcs(file_path: str, destination_blob_name: str) -> str:
         # Upload từ đường dẫn tệp
         blob.upload_from_filename(file_path, content_type=mimetypes.guess_type(file_path)[0] or 'application/octet-stream')
         
-        # Tạo Signed URL có thời hạn 7 ngày
+        # Tạo Signed URL 
         signed_url = blob.generate_signed_url(expiration=timedelta(days=7), method='GET')
         
         return signed_url

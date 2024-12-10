@@ -52,7 +52,7 @@ class _TodoViewState extends BaseViewState<TodoScreen, TodoViewModel> {
     final Map<String, List<Todo>> groupedTodos = {};
 
     for (var todo in state.todos) {
-      String groupTitle = todo.audioTitle ?? 'Unknown';
+      String groupTitle = todo.transcriptionId ?? 'Unknown';
       if (!groupedTodos.containsKey(groupTitle)) {
         groupedTodos[groupTitle] = [];
       }
@@ -74,9 +74,10 @@ class _TodoViewState extends BaseViewState<TodoScreen, TodoViewModel> {
                   itemBuilder: (context, index) {
                     String groupTitle = groupedTodos.keys.elementAt(index);
                     List<Todo> todoItems = groupedTodos[groupTitle]!;
+                    String title = todoItems.first.audioTitle ?? 'Unknown';
 
                     return TodoGroup(
-                      groupTitle: groupTitle,
+                      groupTitle: title,
                       todoItems: todoItems
                           .map((todo) => _buildTodoItem(
                               todo.id, todo.title, todo.isCompleted ?? false))

@@ -45,13 +45,26 @@ def get_audio_duration(file_path: str) -> int:
         raise HTTPException(status_code=500, detail="Error calculating audio duration")
 
 
-@router.post("/upload-audio", status_code=201)
-async def upload_audio(
+@router.post("/upload-audio-gemini", status_code=201)
+async def upload_audio_gemini(
     audio: UploadFile = File(...),
     title: str = Form(...),
     db: Session = Depends(get_db),
     user_dict = Depends(auth_middleware)
 ):
+    return await handle_upload(audio, title, db, user_dict, service='gemini')
+
+@router.post("/upload-audio-google", status_code=201)
+async def upload_audio_google(
+    audio: UploadFile = File(...),
+    title: str = Form(...),
+    languages: list = Form(None),  # Danh sách các mã ngôn ngữ, ví dụ: ["en-US", "vi-VN"]
+    db: Session = Depends(get_db),
+    user_dict = Depends(auth_middleware)
+):
+    return await handle_upload(audio, title, db, user_dict, service='google', languages=languages)
+
+async def handle_upload(audio: UploadFile, title: str, db: Session, user_dict, service: str, languages: list = None):
     try:
         user_id = user_dict['uid']
         
@@ -61,9 +74,9 @@ async def upload_audio(
             raise HTTPException(status_code=404, detail="User not found")
         
         # Kiểm tra số lượng file hiện tại
-        current_file_count = len(user.audio_files)
-        if current_file_count >= user.max_audio_files:
-            raise HTTPException(status_code=400, detail="You have reached the maximum number of audio files.")
+        # current_file_count = len(user.audio_files)
+        # if current_file_count >= user.max_audio_files:
+        #     raise HTTPException(status_code=400, detail="You have reached the maximum number of audio files.")
         
         # Tạo ID cho AudioFile và Transcription
         audio_id = str(uuid4())
@@ -100,7 +113,7 @@ async def upload_audio(
             blob_name=filename,
             file_url=file_url,
             uploaded_at=datetime.utcnow(),
-            duration=duration_seconds  # Lưu duration tính bằng phút
+            duration=duration_seconds  # Lưu duration tính bằng giây
         )
         db.add(audio_file)
         
@@ -120,9 +133,15 @@ async def upload_audio(
         db.commit()
         db.refresh(transcription)
 
-        # Enqueue yêu cầu vào hàng đợi
+        # Enqueue yêu cầu vào hàng đợi để xử lý phiên âm
         future = asyncio.get_event_loop().create_future()
-        await queue.put((file_location, transcription.id, future))
+        
+        # Nếu sử dụng Google Speech-to-Text và không cung cấp ngôn ngữ, sử dụng ngôn ngữ mặc định hoặc danh sách ngôn ngữ dự kiến
+        if service == 'google' and not languages:
+            # Ví dụ: hỗ trợ tiếng Anh và tiếng Việt
+            languages = ["vi-VN", "en-US" ]
+
+        await queue.put((file_location, transcription.id, future, service, languages, duration_seconds))
 
         # Trả về response với thông tin AudioFile và Transcription
         return JSONResponse(
@@ -141,7 +160,7 @@ async def upload_audio(
         )
 
     except Exception as e:
-        logger.error("Error during audio upload:", exc_info=True)
+        logger.error(f"Error during audio upload for {service}:", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

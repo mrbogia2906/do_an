@@ -33,7 +33,7 @@ class UpgradeScreen extends BaseView {
 
 class _UpgradeViewState extends BaseViewState<UpgradeScreen, UpgradeViewModel> {
   // Giá cố định cho việc nâng cấp (ví dụ: 10,000 VNĐ)
-  final int fixedPrice = 10000;
+  final int fixedPrice = 5000000;
 
   @override
   Future<void> onInitState() async {
@@ -196,6 +196,11 @@ class _UpgradeViewState extends BaseViewState<UpgradeScreen, UpgradeViewModel> {
                         child: ElevatedButton(
                           onPressed: () async {
                             await _showConfirmationDialog(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${state.payResult}'),
+                              ),
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 15),

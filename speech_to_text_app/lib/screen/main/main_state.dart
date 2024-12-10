@@ -21,8 +21,9 @@ class TranscriptionEntry {
   final String id;
   final String? transcriptionId;
   final String audioFileId;
-  final List<WordInfo>? words;
+  final List<WordInfo> words;
   final String? content;
+  final String? summary;
   final DateTime createdAt;
   final bool isProcessing;
   final bool isError;
@@ -31,8 +32,9 @@ class TranscriptionEntry {
     required this.id,
     this.transcriptionId,
     required this.audioFileId,
-    this.words,
+    required this.words,
     this.content,
+    this.summary,
     required this.createdAt,
     this.isProcessing = false,
     this.isError = false,
@@ -40,13 +42,14 @@ class TranscriptionEntry {
 
   // Factory constructor để tạo TranscriptionEntry từ JSON
   factory TranscriptionEntry.fromJson(Map<String, dynamic> json) {
-    var wordsFromJson = json['words'] as List<dynamic>?;
+    var wordsFromJson = json['word_timings'] as List<dynamic>?;
 
     return TranscriptionEntry(
       id: json['id'],
       transcriptionId: json['transcription_id'],
       audioFileId: json['audio_file_id'],
       content: json['content'],
+      summary: json['summary'],
       createdAt: DateTime.parse(json['created_at']),
       isProcessing: json['is_processing'] ?? false,
       isError: json['is_error'] ?? false,
@@ -64,6 +67,8 @@ class TranscriptionEntry {
       audioFileId: '',
       createdAt: DateTime.now(),
       content: '',
+      summary: '',
+      words: [],
       isProcessing: false,
       isError: false,
     );
@@ -76,10 +81,11 @@ class TranscriptionEntry {
       'transcription_id': transcriptionId,
       'audio_file_id': audioFileId,
       'content': content,
+      'summary': summary,
       'created_at': createdAt.toIso8601String(),
       'is_processing': isProcessing,
       'is_error': isError,
-      'words': words?.map((word) => word.toJson()).toList(),
+      'word_timings': words.map((word) => word.toJson()).toList(),
     };
   }
 
@@ -90,6 +96,7 @@ class TranscriptionEntry {
     String? audioFileId,
     List<WordInfo>? words,
     String? content,
+    String? summary,
     DateTime? createdAt,
     bool? isProcessing,
     bool? isError,
@@ -99,6 +106,7 @@ class TranscriptionEntry {
       transcriptionId: transcriptionId ?? this.transcriptionId,
       audioFileId: audioFileId ?? this.audioFileId,
       words: words ?? this.words,
+      summary: summary ?? this.summary,
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       isProcessing: isProcessing ?? this.isProcessing,
@@ -121,7 +129,7 @@ class WordInfo {
   // Factory constructor để tạo WordInfo từ JSON
   factory WordInfo.fromJson(Map<String, dynamic> json) {
     return WordInfo(
-      word: json['word'],
+      word: json['sentence'],
       startTime: (json['start_time'] as num).toDouble(),
       endTime: (json['end_time'] as num).toDouble(),
     );
@@ -130,7 +138,7 @@ class WordInfo {
   // Chuyển WordInfo thành JSON
   Map<String, dynamic> toJson() {
     return {
-      'word': word,
+      'sentence': word,
       'start_time': startTime,
       'end_time': endTime,
     };

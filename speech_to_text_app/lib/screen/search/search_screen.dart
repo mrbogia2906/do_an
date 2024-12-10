@@ -94,9 +94,6 @@ class _SearchScreenState extends BaseViewState<SearchScreen, SearchViewModel> {
           filled: true,
           fillColor: Colors.grey[200],
         ),
-        // onChanged: (value) {
-
-        // },
         onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
         onSubmitted: (value) async {
           viewModel.setSearchQuery(value);
@@ -136,7 +133,7 @@ class _SearchScreenState extends BaseViewState<SearchScreen, SearchViewModel> {
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: HighlightText(
-                text: highlightedText ?? '',
+                text: highlightedText,
                 words: {
                   normalizeText(state.searchQuery): HighlightStyle(
                     backgroundColor: Colors.yellow,
@@ -216,13 +213,17 @@ class _SearchScreenState extends BaseViewState<SearchScreen, SearchViewModel> {
 
     String? resultText;
     for (var keyword in keywords) {
-      final index = content.toLowerCase().indexOf(keyword.toLowerCase());
+      // Loại bỏ dấu và chuyển thành chữ thường
+      final normalizedContent = removeDiacritics(content.toLowerCase());
+      final normalizedKeyword = removeDiacritics(keyword.toLowerCase());
+
+      final index = normalizedContent.indexOf(normalizedKeyword);
 
       if (index != -1) {
         int start =
             (index - 50 >= 0) ? index - 50 : 0; // Cắt 50 ký tự trước từ khóa
-        int end = (index + keyword.length + 50 <= content.length)
-            ? index + keyword.length + 50
+        int end = (index + normalizedKeyword.length + 50 <= content.length)
+            ? index + normalizedKeyword.length + 50
             : content.length; // Cắt 50 ký tự sau từ khóa
         resultText = content.substring(start, end);
       }

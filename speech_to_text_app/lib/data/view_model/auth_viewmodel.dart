@@ -1,9 +1,12 @@
 // lib/features/auth/viewmodels/auth_viewmodel.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:speech_to_text_app/data/providers/transcription_provider.dart';
 
 import '../../components/failure/failure.dart';
 import '../models/api/responses/user/user_model.dart';
+import '../providers/audio_provider.dart';
 import '../providers/auth_local_repository_provider.dart';
 import '../providers/auth_remote_repository_provider.dart';
 import '../providers_gen/current_user_notifier.dart';
@@ -13,6 +16,7 @@ import '../repositories/auth/auth_remote_repository.dart';
 final authViewModelProvider =
     StateNotifierProvider<AuthViewModel, AsyncValue<UserModel?>>(
   (ref) => AuthViewModel(
+    ref: ref,
     authRemoteRepository: ref.read(authRemoteRepositoryProvider),
     authLocalRepository: ref.read(authLocalRepositoryProvider),
     currentUserNotifier: ref.read(currentUserNotifierProvider.notifier),
@@ -23,11 +27,13 @@ class AuthViewModel extends StateNotifier<AsyncValue<UserModel?>> {
   final AuthRemoteRepository _authRemoteRepository;
   final AuthLocalRepository _authLocalRepository;
   final CurrentUserNotifier _currentUserNotifier;
+  final Ref ref;
 
   AuthViewModel({
     required AuthRemoteRepository authRemoteRepository,
     required AuthLocalRepository authLocalRepository,
     required CurrentUserNotifier currentUserNotifier,
+    required this.ref,
   })  : _authRemoteRepository = authRemoteRepository,
         _authLocalRepository = authLocalRepository,
         _currentUserNotifier = currentUserNotifier,
@@ -227,6 +233,8 @@ class AuthViewModel extends StateNotifier<AsyncValue<UserModel?>> {
   // Phương thức đăng xuất người dùng
   Future<void> logoutUser() async {
     try {
+      ref.read(transcriptionProvider.notifier).clearTranscriptions();
+      ref.read(audioFilesProvider.notifier).clearAudioFiles();
       await _authLocalRepository.clearToken();
       _currentUserNotifier.removeUser();
       state = const AsyncValue.data(null);

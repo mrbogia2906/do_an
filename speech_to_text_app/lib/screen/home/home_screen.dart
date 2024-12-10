@@ -2,6 +2,7 @@
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:speech_to_text_app/components/base_view/base_view.dart';
@@ -144,6 +145,55 @@ class _HomeViewState extends BaseViewState<HomeScreen, HomeViewModel> {
         ),
       ),
     );
+  }
+
+  Widget _buildListRecording(
+      List<dynamic> groupList, List<AudioFile> audioFiles) {
+    return groupList.isNotEmpty
+        ? ListView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: groupList.length,
+            itemBuilder: (context, index) {
+              final item = groupList[index];
+              if (item is String) {
+                return ListSectionHeader(title: item);
+              } else if (item is TranscriptionEntry) {
+                final entry = item;
+                final audioFile = audioFiles.firstWhere(
+                  (audio) => audio.id == entry.audioFileId,
+                  orElse: () => AudioFile(
+                    id: 'unknown',
+                    title: 'Processing...',
+                    fileUrl: '',
+                    uploadedAt: DateTime.now(),
+                    transcriptionId: null,
+                    isProcessing: false,
+                  ),
+                );
+
+                return GestureDetector(
+                  onTap: () {
+                    if (!entry.isProcessing && !entry.isError) {
+                      context.router.push(AudioDetailsRoute(
+                        entry: entry,
+                        audioFile: audioFile,
+                      ));
+                    }
+                  },
+                  child: RecordingTile(
+                    entry: entry,
+                    audioFile: audioFile,
+                  ),
+                );
+              } else {
+                return const SizedBox.shrink();
+              }
+            },
+          )
+        : const Center(
+            child: Text('No recordings yet'),
+          );
   }
 
   String _formatDate(DateTime date) {
@@ -326,7 +376,11 @@ class RecordingTile extends ConsumerWidget {
                               TextFormField(
                                 controller: controller,
                                 decoration: const InputDecoration(
-                                  border: OutlineInputBorder(),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(12.0),
+                                    ),
+                                  ),
                                   hintText: 'Enter new title',
                                 ),
                                 validator: (value) {

@@ -11,6 +11,7 @@ class Transcription(Base):
     id = Column(String, primary_key=True, index=True)
     audio_file_id = Column(String, ForeignKey("audio_files.id"), nullable=False, unique=True)
     content = Column(Text, nullable=True)
+    summary = Column(Text, nullable=True)
     is_processing = Column(Boolean, default=True)
     is_error = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)

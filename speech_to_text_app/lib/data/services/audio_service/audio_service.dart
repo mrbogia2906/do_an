@@ -14,7 +14,7 @@ class AudioService {
   // Hàm upload audio
   Future<AudioFile> uploadAudio(
       File audioFile, String title, String token) async {
-    final uri = Uri.parse('$baseUrl/upload-audio');
+    final uri = Uri.parse('$baseUrl/upload-audio-gemini');
     final request = http.MultipartRequest('POST', uri)
       ..headers['x-auth-token'] = token
       ..fields['title'] = title
@@ -98,7 +98,8 @@ class AudioService {
       // Sử dụng utf8.decode để đảm bảo dữ liệu được giải mã đúng cách
       final decodedBody = json.decode(utf8.decode(response.bodyBytes));
       print(
-          'Fetched transcription content: ${decodedBody['content']}'); // Kiểm tra log
+          'Fetched transcription content: ${decodedBody['content']}, '); // Kiểm tra log
+      print('Fetched transcription JSON: $decodedBody');
       return TranscriptionEntry.fromJson(decodedBody);
     } else {
       throw Exception("Failed to fetch transcription");

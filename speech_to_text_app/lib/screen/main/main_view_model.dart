@@ -95,6 +95,8 @@ class MainViewModel extends BaseViewModel<MainState> {
         transcriptionId: null,
         audioFileId: 'Recording',
         content: 'Processing audio file...',
+        summary: 'Processing audio file...',
+        words: [],
         createdAt: DateTime.now(),
         isProcessing: true,
         isError: false,
@@ -111,6 +113,7 @@ class MainViewModel extends BaseViewModel<MainState> {
               tempId,
               processingEntry.copyWith(
                 content: 'Authentication token missing',
+                summary: 'Authentication token missing',
                 isProcessing: false,
                 isError: true,
               ),
@@ -165,6 +168,7 @@ class MainViewModel extends BaseViewModel<MainState> {
                 tempId,
                 processingEntry.copyWith(
                   content: 'Transcription ID missing from backend',
+                  summary: 'Transcription ID missing from backend',
                   isProcessing: false,
                   isError: true,
                 ),
@@ -186,6 +190,7 @@ class MainViewModel extends BaseViewModel<MainState> {
               tempId,
               processingEntry.copyWith(
                 content: e.toString(),
+                summary: e.toString(),
                 isProcessing: false,
                 isError: true,
               ),
@@ -243,6 +248,8 @@ class MainViewModel extends BaseViewModel<MainState> {
         transcriptionId: null,
         audioFileId: fileName,
         content: 'Processing audio file...',
+        summary: 'Processing audio file...',
+        words: [],
         createdAt: DateTime.now(),
         isProcessing: true,
         isError: false,
@@ -296,6 +303,7 @@ class MainViewModel extends BaseViewModel<MainState> {
               tempId,
               processingEntry.copyWith(
                 content: e.toString(),
+                summary: e.toString(),
                 isProcessing: false,
                 isError: true,
               ),
@@ -342,6 +350,8 @@ class MainViewModel extends BaseViewModel<MainState> {
       transcriptionId: null,
       audioFileId: sanitizedTitle,
       content: 'Processing audio file...',
+      summary: 'Processing audio file...',
+      words: [],
       createdAt: DateTime.now(),
       isProcessing: true,
       isError: false,
@@ -360,6 +370,7 @@ class MainViewModel extends BaseViewModel<MainState> {
               tempId,
               processingEntry.copyWith(
                 content: e.toString(),
+                summary: e.toString(),
                 isProcessing: false,
                 isError: true,
               ),
@@ -384,6 +395,7 @@ class MainViewModel extends BaseViewModel<MainState> {
               tempId,
               processingEntry.copyWith(
                 content: 'Authentication token missing',
+                summary: 'Authentication token missing',
                 isProcessing: false,
                 isError: true,
               ),
@@ -443,6 +455,7 @@ class MainViewModel extends BaseViewModel<MainState> {
                 tempId,
                 processingEntry.copyWith(
                   content: 'Transcription ID missing from backend',
+                  summary: 'Transcription ID missing from backend',
                   isProcessing: false,
                   isError: true,
                 ),
@@ -463,6 +476,7 @@ class MainViewModel extends BaseViewModel<MainState> {
               tempId,
               processingEntry.copyWith(
                 content: e.toString(),
+                summary: e.toString(),
                 isProcessing: false,
                 isError: true,
               ),
@@ -483,6 +497,7 @@ class MainViewModel extends BaseViewModel<MainState> {
             tempId,
             processingEntry.copyWith(
               content: 'File does not exist after download',
+              summary: 'File does not exist after download',
               isProcessing: false,
               isError: true,
             ),
@@ -518,6 +533,8 @@ class MainViewModel extends BaseViewModel<MainState> {
               transcriptionId: transcriptionId,
               audioFileId: audioFileId,
               content: 'Authentication token missing',
+              summary: 'Authentication token missing',
+              words: [],
               createdAt: DateTime.now(),
               isProcessing: false,
               isError: true,
@@ -538,10 +555,12 @@ class MainViewModel extends BaseViewModel<MainState> {
             .updateTranscriptionByAudioFileId(
               audioFileId,
               TranscriptionEntry(
-                id: transcriptionId, // Unique ID
+                id: transcriptionId,
                 transcriptionId: transcription.transcriptionId,
                 audioFileId: transcription.audioFileId,
                 content: transcription.content ?? 'Unknown error',
+                summary: transcription.summary ?? 'Unknown error',
+                words: transcription.words,
                 createdAt: transcription.createdAt,
                 isProcessing: false,
                 isError: true,
@@ -559,6 +578,8 @@ class MainViewModel extends BaseViewModel<MainState> {
                 transcriptionId: transcription.transcriptionId,
                 audioFileId: transcription.audioFileId,
                 content: transcription.content ?? 'No content',
+                summary: transcription.summary ?? 'No summary',
+                words: transcription.words,
                 createdAt: transcription.createdAt,
                 isProcessing: false,
                 isError: false,
@@ -582,6 +603,8 @@ class MainViewModel extends BaseViewModel<MainState> {
               transcriptionId: transcriptionId,
               audioFileId: audioFileId,
               content: e.toString(),
+              summary: e.toString(),
+              words: [],
               createdAt: DateTime.now(),
               isProcessing: false,
               isError: true,

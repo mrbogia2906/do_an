@@ -10,11 +10,17 @@ class WordTiming(BaseModel):
     start_time: float
     end_time: float
 
+class SetenceTiming(BaseModel):
+    sentence: str
+    start_time: float
+    end_time: float
+
 class TranscriptionResponse(BaseModel):
     id: str
     audio_file_id: str
     content: Optional[str]
-    word_timings: Optional[List[WordTiming]]
+    summary: Optional[str]
+    word_timings: Optional[List[SetenceTiming]]
     created_at: datetime
     is_processing: bool
     is_error: bool
